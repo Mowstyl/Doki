@@ -94,7 +94,6 @@ ENV/
 # Binary folders
 bin/
 obj/
-old/
 
 # Prerequisites
 *.d
@@ -151,4 +150,6 @@ dkms.conf
 
 ######################### cosas mias
 .apuntes/
+old/
 *.old
+olddoki/
