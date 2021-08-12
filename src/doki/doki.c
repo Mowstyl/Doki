@@ -15,6 +15,9 @@ void
 doki_gate_destroy (PyObject *capsule);
 
 static PyObject *
+doki_seed_set (PyObject *self, PyObject *args);
+
+static PyObject *
 doki_registry_new (PyObject *self, PyObject *args);
 
 static PyObject *
@@ -26,11 +29,20 @@ doki_registry_get (PyObject *self, PyObject *args);
 static PyObject *
 doki_registry_apply (PyObject *self, PyObject *args);
 
+static PyObject *
+doki_registry_join (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_registry_measure (PyObject *self, PyObject *args);
+
 static PyMethodDef DokiMethods[] = {
+    {"seed", doki_seed_set, METH_VARARGS, "Set seed for random operations"},
     {"new", doki_registry_new, METH_VARARGS, "Create new registry"},
     {"gate", doki_registry_gate, METH_VARARGS, "Create new gate"},
     {"get", doki_registry_get, METH_VARARGS, "Get value from registry"},
     {"apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
+    {"join", doki_registry_join, METH_VARARGS, "Merges two registries"},
+    {"measure", doki_registry_measure, METH_VARARGS, "Measures and collapses specified qubits"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -124,6 +136,19 @@ doki_gate_destroy (PyObject *capsule)
     }
     free(gate->matrix);
     free(gate);
+}
+
+static PyObject *
+doki_seed_set (PyObject *self, PyObject *args)
+{
+    long long seed, random;
+    if (!PyArg_ParseTuple(args, "L", &seed))
+    {
+        PyErr_SetString(DokiError, "Syntax: seed(integer number)");
+        return NULL;
+    }
+    // fprintf(stdout, "Seed: %lld\n", seed);
+    srand(seed);
 }
 
 static PyObject *
@@ -299,7 +324,6 @@ doki_registry_apply (PyObject *self, PyObject *args)
     void *raw_state, *raw_gate;
     struct state_vector *state;
     struct qgate *gate;
-    NATURAL_TYPE id;
     unsigned char exit_code;
     unsigned int num_targets, num_controls, num_anticontrols, i;
     unsigned int *targets, *controls, *anticontrols;
@@ -455,4 +479,138 @@ doki_registry_apply (PyObject *self, PyObject *args)
     }
 
     return Py_None;
+}
+
+static PyObject *
+doki_registry_join (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_state1, *raw_state2;
+    struct state_vector *state1, *state2, *result;
+    unsigned char exit_code;
+
+    if (!PyArg_ParseTuple(args, "OO", &capsule1, &capsule2)) {
+        PyErr_SetString(DokiError, "Syntax: join(most_registry, least_registry)");
+        return NULL;
+    }
+
+    raw_state1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.state_vector");
+    if (raw_state1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to registry1");
+        return NULL;
+    }
+
+    raw_state2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.state_vector");
+    if (raw_state2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to registry2");
+        return NULL;
+    }
+    state1 = (struct state_vector*) raw_state1;
+    state2 = (struct state_vector*) raw_state2;
+    result = MALLOC_TYPE(1, struct state_vector);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate new state structure");
+        return NULL;
+    }
+    exit_code = join(result, state1, state2);
+
+    if (exit_code == 1) {
+        PyErr_SetString(DokiError, "Failed to initialize new state chunk");
+    }
+    else if (exit_code == 2) {
+        PyErr_SetString(DokiError, "Failed to allocate new state chunk");
+    }
+    else if (exit_code == 3) {
+        PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
+    }
+    else if (exit_code == 4) {
+        PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
+    }
+    else if (exit_code == 5) {
+        PyErr_SetString(DokiError, "Failed to get/set a value");
+    }
+    else if (exit_code != 0) {
+        PyErr_SetString(DokiError, "Unknown error when applying gate");
+    }
+
+    if (exit_code != 0) {
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.state_vector",
+                         &doki_registry_destroy);
+}
+
+static PyObject *
+doki_registry_measure (PyObject *self, PyObject *args)
+{
+    PyObject *capsule, *py_measured_val, *result;
+    void *raw_state;
+    struct state_vector *state;
+    NATURAL_TYPE mask;
+    unsigned int i, curr_id, initial_num_qubits;
+    _Bool measure_id, measured_val;
+    unsigned char exit_code;
+
+    if (!PyArg_ParseTuple(args, "OK", &capsule, &mask)) {
+        PyErr_SetString(DokiError, "Syntax: measure(registry, mask)");
+        return NULL;
+    }
+
+    raw_state = PyCapsule_GetPointer(capsule, "qsimov.doki.state_vector");
+    if (raw_state == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to registry");
+        return NULL;
+    }
+    state = (struct state_vector*) raw_state;
+    initial_num_qubits = state->num_qubits;
+    result = PyList_New(initial_num_qubits);
+
+    exit_code = 0;
+    for (i = 0; i < initial_num_qubits; i++) {
+        if (exit_code != 0) {
+            break;
+        }
+        curr_id = initial_num_qubits - i - 1;
+        measure_id = mask & (NATURAL_ONE << curr_id);
+        py_measured_val = Py_None;
+        if (measure_id) {
+            exit_code = measure(state, &measured_val, curr_id);
+            py_measured_val = measured_val ? Py_True : Py_False;
+        }
+        PyList_SET_ITEM(result, i, py_measured_val);
+    }
+    if (exit_code != 0) {
+        switch (exit_code) {
+            case 1:
+                PyErr_SetString(DokiError, "Not on this computation node");
+                break;
+            case 2:
+                PyErr_SetString(DokiError, "Tried to access element out of bounds");
+                break;
+            case 3:
+                PyErr_SetString(DokiError, "Failed to initialize new state chunk");
+                break;
+            case 4:
+                PyErr_SetString(DokiError, "Failed to allocate new state chunk");
+                break;
+            case 5:
+                PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
+                break;
+            case 6:
+                PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
+                break;
+            case 7:
+                PyErr_SetString(DokiError, "Failed to allocate new state structure");
+                break;
+            case 8:
+                PyErr_SetString(DokiError, "Failed to get/set a value while collapsing");
+                break;
+            default:
+                PyErr_SetString(DokiError, "Unknown error!");
+        }
+        return NULL;
+    }
+
+    return result;
 }

@@ -121,6 +121,12 @@ state_clear(struct state_vector *state)
     if (state->vector != NULL) {
         list_clear(state->vector);
     }
+    state->num_qubits = 0;
+    state->size = 0;
+    state->first_id = 0;
+    state->last_id = 0;
+    state->norm_const = 0.0;
+    state->vector = NULL;
 }
 
 unsigned char

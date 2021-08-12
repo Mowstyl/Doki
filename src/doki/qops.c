@@ -8,6 +8,170 @@
 #include "qgate.h"
 #include "qops.h"
 
+
+
+unsigned char
+join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
+{
+    NATURAL_TYPE i, j, new_index;
+    COMPLEX_TYPE o1, o2;
+    unsigned char exit_code, aux_code;
+    _Bool errored;
+
+    exit_code = state_init(r, s1->num_qubits + s2->num_qubits, 0);
+    if (exit_code != 0) {
+        return exit_code;
+    }
+    aux_code = 0;
+    errored = 0;
+    #pragma omp parallel for reduction (|:exit_code) \
+                             default(none) \
+                             shared (r, s1, s2) \
+                             private (i, o1, aux_code, exit_code, new_index, errored)
+    for (i = 0; i < s1->size; i++) {
+        if (aux_code != 0) {
+            continue;
+        }
+        aux_code |= state_get(s1, i, &o1);
+        if (aux_code != 0 && !errored) {
+            errored = 1;
+            printf("Failed to get state element %llu from s1\n", i);
+        }
+        for (j = 0; j < s2->size; j++) {
+            if (aux_code != 0) {
+                break;
+            }
+            new_index = i * s2->size + j;
+            aux_code |= state_get(s2, j, &o2);
+            if (aux_code != 0 && !errored) {
+                errored = 1;
+                printf("Failed to get state element %llu from s2\n", j);
+            }
+            aux_code |= state_set(r, new_index, complex_mult(o1, o2));
+            if (aux_code != 0 && !errored) {
+                errored = 1;
+                printf("Failed to set state element %llu\n", new_index);
+            }
+        }
+        exit_code |= aux_code;
+    }
+    if (exit_code != 0) {
+        state_clear(r);
+        return 5;
+    }
+    return 0;
+}
+
+unsigned char
+measure(struct state_vector *state, _Bool *result, unsigned int target)
+{
+    NATURAL_TYPE i, count, step;
+    COMPLEX_TYPE aux;
+    REAL_TYPE sum, roll;
+    unsigned char toggle, exit_code;
+
+    toggle = 0;
+    count = 0;
+    rand(); // If the seeds are close the first random will be close
+    roll = (REAL_TYPE) rand() / (REAL_TYPE) RAND_MAX;
+    // Value of bit changes each step (2^target)
+    step = NATURAL_ONE << target;
+    exit_code = 0;
+    sum = 0;
+    // printf("[DEBUG] Zero chance ");
+    for (i = 0; i < state->size; i++) {
+        if (sum > roll || exit_code != 0) {
+            // printf(">");
+            break;
+        }
+        if (toggle != 0) {
+            sum += 0;
+        }
+        else {
+            exit_code = state_get(state, i, &aux);
+            sum += pow(creal(aux), 2) + pow(cimag(aux), 2);
+        }
+        count++;
+        if (count == step) {
+            count = 0;
+            toggle = !toggle;
+        }
+    }
+    // printf("= %lf\n", sum);
+    // printf("[DEBUG] Roll: %lf\n", roll);
+    if (exit_code == 0) {
+        *result = sum <= roll;
+        exit_code = collapse(state, target, *result);
+        if (exit_code != 0) {
+            exit_code += 2;  // Max code from state_get is 2
+        }
+    }
+
+    return exit_code;
+}
+
+unsigned char
+collapse(struct state_vector *state, unsigned int target_id, _Bool value)
+{
+    struct state_vector *new_state;
+    unsigned char exit_code;
+    NATURAL_TYPE i, j, count, step, iterations;
+    _Bool toggle;
+    REAL_TYPE norm_const;
+    COMPLEX_TYPE aux;
+
+    if (state->num_qubits == 1) {
+        state_clear(state);
+        return 0;
+    }
+
+    new_state = MALLOC_TYPE(1, struct state_vector);
+    if (new_state == NULL) {
+        return 5;
+    }
+    exit_code = state_init(new_state, state->num_qubits - 1, 0);
+    if (exit_code != 0) {
+        free(new_state);
+        return exit_code;
+    }
+    norm_const = 0;
+    toggle = 0;
+    count = 0;
+    step = NATURAL_ONE << target_id;
+    j = 0;
+    for (i = 0; i < state->size; i++) {
+        if (exit_code != 0) {
+            break;
+        }
+        if (toggle == value) {
+            exit_code |= state_get(state, i, &aux);
+            exit_code |= state_set(new_state, j, aux);
+            norm_const += pow(creal(aux), 2) + pow(cimag(aux), 2);
+            j++;
+        }
+        count++;
+        if (count == step) {
+            count = 0;
+            toggle = !toggle;
+        }
+    }
+
+    if (exit_code == 0) {
+        state_clear(state);
+        state->first_id = new_state->first_id;
+        state->last_id = new_state->last_id;
+        state->size = new_state->size;
+        state->num_qubits = new_state->num_qubits;
+        state->vector = new_state->vector;
+        state->norm_const = norm_const;
+        new_state->vector = NULL;
+    }
+    // state_clear(new_state);
+    free(new_state);
+
+    return exit_code;
+}
+
 unsigned char
 apply_gate(struct state_vector *state, struct qgate *gate,
            unsigned int *targets, unsigned int num_targets,
@@ -76,6 +240,7 @@ apply_gate(struct state_vector *state, struct qgate *gate,
         state->first_id = new_state->first_id;
         state->last_id = new_state->last_id;
         state->size = new_state->size;
+        state->num_qubits = new_state->num_qubits;
         state->vector = new_state->vector;
         state->norm_const = new_state->norm_const;
         new_state->vector = NULL;
@@ -104,12 +269,11 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
     #pragma omp parallel for reduction (+:count) \
                              reduction (|:exit_code) \
                              default(none) \
-                             shared (state, count, not_copy, new_state, gate, \
-                                     targets, num_targets, \
+                             shared (state, count, not_copy, new_state, \
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
-                                     exit_code, norm_const) \
-                             private (curr_id, copy_only, get, sum, row, reg_index, i, j, k)
+                                     exit_code, norm_const, count) \
+                             private (copy_only, get, i, j)
     for (i = 0; i < state->size; i++) {
         // If there has been any error in this thread, we skip
         if (exit_code != 0) {
