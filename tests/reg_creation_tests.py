@@ -45,7 +45,7 @@ def main():
             fails = [i + min_qubits for i in range(len(res)) if not res[i]]
             raise AssertionError("Failed tests: " + str(fails))
         else:
-            print("PEACE AND TRANQUILITY")
+            print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

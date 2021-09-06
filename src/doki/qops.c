@@ -63,7 +63,8 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
 }
 
 unsigned char
-measure(struct state_vector *state, _Bool *result, unsigned int target)
+measure(struct state_vector *state, _Bool *result, unsigned int target,
+        struct state_vector *new_state)
 {
     NATURAL_TYPE i, count, step;
     COMPLEX_TYPE aux;
@@ -101,7 +102,7 @@ measure(struct state_vector *state, _Bool *result, unsigned int target)
     // printf("[DEBUG] Roll: %lf\n", roll);
     if (exit_code == 0) {
         *result = sum <= roll;
-        exit_code = collapse(state, target, *result);
+        exit_code = collapse(state, target, *result, new_state);
         if (exit_code != 0) {
             exit_code += 2;  // Max code from state_get is 2
         }
@@ -111,9 +112,9 @@ measure(struct state_vector *state, _Bool *result, unsigned int target)
 }
 
 unsigned char
-collapse(struct state_vector *state, unsigned int target_id, _Bool value)
+collapse(struct state_vector *state, unsigned int target_id, _Bool value,
+         struct state_vector *new_state)
 {
-    struct state_vector *new_state;
     unsigned char exit_code;
     NATURAL_TYPE i, j, count, step, iterations;
     _Bool toggle;
@@ -125,10 +126,12 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value)
         return 0;
     }
 
+    /*
     new_state = MALLOC_TYPE(1, struct state_vector);
     if (new_state == NULL) {
         return 5;
     }
+    */
     exit_code = state_init(new_state, state->num_qubits - 1, 0);
     if (exit_code != 0) {
         free(new_state);
@@ -157,17 +160,19 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value)
     }
 
     if (exit_code == 0) {
+        /*
         state_clear(state);
         state->first_id = new_state->first_id;
         state->last_id = new_state->last_id;
         state->size = new_state->size;
         state->num_qubits = new_state->num_qubits;
         state->vector = new_state->vector;
-        state->norm_const = norm_const;
-        new_state->vector = NULL;
+        */
+        new_state->norm_const = norm_const;
+        // new_state->vector = NULL;
     }
     // state_clear(new_state);
-    free(new_state);
+    // free(new_state);
 
     return exit_code;
 }
@@ -233,7 +238,7 @@ apply_gate(struct state_vector *state, struct qgate *gate,
     else {
         exit_code = 6;
     }
-    
+
     alist_clear(not_copy);
     free(not_copy);
 

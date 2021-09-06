@@ -8,10 +8,12 @@ unsigned char
 join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2);
 
 unsigned char
-measure(struct state_vector *state, _Bool *result, unsigned int target);
+measure(struct state_vector *state, _Bool *result, unsigned int target,
+        struct state_vector *new_state);
 
 unsigned char
-collapse(struct state_vector *state, unsigned int id, _Bool value);
+collapse(struct state_vector *state, unsigned int id, _Bool value,
+         struct state_vector *new_state);
 
 unsigned char
 apply_gate(struct state_vector *state, struct qgate *gate,

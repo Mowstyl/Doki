@@ -548,9 +548,9 @@ doki_registry_join (PyObject *self, PyObject *args)
 static PyObject *
 doki_registry_measure (PyObject *self, PyObject *args)
 {
-    PyObject *capsule, *py_measured_val, *result;
+    PyObject *capsule, *py_measured_val, *result, *new_capsule;
     void *raw_state;
-    struct state_vector *state;
+    struct state_vector *state, *new_state, *aux;
     NATURAL_TYPE mask;
     unsigned int i, curr_id, initial_num_qubits;
     _Bool measure_id, measured_val;
@@ -571,6 +571,8 @@ doki_registry_measure (PyObject *self, PyObject *args)
     result = PyList_New(initial_num_qubits);
 
     exit_code = 0;
+    aux = state;
+    new_state = state;
     for (i = 0; i < initial_num_qubits; i++) {
         if (exit_code != 0) {
             break;
@@ -579,8 +581,17 @@ doki_registry_measure (PyObject *self, PyObject *args)
         measure_id = mask & (NATURAL_ONE << curr_id);
         py_measured_val = Py_None;
         if (measure_id) {
-            exit_code = measure(state, &measured_val, curr_id);
+            new_state = MALLOC_TYPE(1, struct state_vector);
+            if (new_state == NULL) {
+                PyErr_SetString(DokiError, "Failed to allocate new state structure");
+            }
+            exit_code = measure(aux, &measured_val, curr_id, new_state);
             py_measured_val = measured_val ? Py_True : Py_False;
+            if (aux != state) {
+                state_clear(aux);
+                free(aux);
+            }
+            aux = new_state;
         }
         PyList_SET_ITEM(result, i, py_measured_val);
     }
@@ -605,7 +616,7 @@ doki_registry_measure (PyObject *self, PyObject *args)
                 PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
                 break;
             case 7:
-                PyErr_SetString(DokiError, "Failed to allocate new state structure");
+                PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to allocate new state structure");
                 break;
             case 8:
                 PyErr_SetString(DokiError, "Failed to get/set a value while collapsing");
@@ -616,5 +627,7 @@ doki_registry_measure (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    return result;
+    new_capsule = PyCapsule_New((void*) new_state, "qsimov.doki.state_vector",
+                         &doki_registry_destroy);
+    return PyTuple_Pack(2, new_capsule, result);
 }

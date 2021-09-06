@@ -114,16 +114,16 @@ def main():
             raise ValueError("minimum can't be greater than maximum")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
-        print("One qubit gate application tests...")
+        print("\tOne qubit gate application tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
-            print("Seed:", seed)
+            print("\tSeed:", seed)
         np.random.seed(seed)
         res = one_gate_range(min_qubits, max_qubits)
         if any(res):
             raise AssertionError("Failed tests: " + str(res))
         else:
-            print("PEACE AND TRANQUILITY")
+            print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +
