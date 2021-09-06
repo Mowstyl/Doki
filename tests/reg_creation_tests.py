@@ -39,6 +39,7 @@ def main():
             raise ValueError("minimum number of qubits must be at least 1")
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
+        print("Registry initialization tests...")
         res = check_range(min_qubits, max_qubits)
         if not all(res):
             fails = [i + min_qubits for i in range(len(res)) if not res[i]]

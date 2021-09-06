@@ -105,9 +105,6 @@ def main():
     seed = None
     if len(argv) == 3:
         seed = int(argv[2])
-    else:
-        seed = np.random.randint(np.iinfo(np.int32).max)
-        print("Seed:", seed)
     if 2 <= len(argv) <= 3:
         min_qubits = int(argv[0])
         max_qubits = int(argv[1])
@@ -115,8 +112,13 @@ def main():
             raise ValueError("minimum number of qubits must be at least 1")
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
-        if seed is not None:
-            np.random.seed(seed)
+        if seed is not None and (seed < 0 or seed >= 2**32):
+            raise ValueError("seed must be in [0, 2^32 - 1]")
+        print("One qubit gate application tests...")
+        if seed is None:
+            seed = np.random.randint(np.iinfo(np.int32).max)
+            print("Seed:", seed)
+        np.random.seed(seed)
         res = one_gate_range(min_qubits, max_qubits)
         if any(res):
             raise AssertionError("Failed tests: " + str(res))
