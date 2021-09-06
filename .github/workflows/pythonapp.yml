@@ -16,6 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m pip install numpy scipy
     - name: Lint with flake8
       run: |
         pip install flake8
@@ -28,4 +29,5 @@ jobs:
         python -m pip install --use-feature=in-tree-build .
     - name: Test
       run: |
-        python tests/hadamard.py
+        python tests/reg_creation_tests.py 1 20
+        python tests/one_gate_tests.py 1 20

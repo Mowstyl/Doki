@@ -17,7 +17,8 @@ unsigned char
 apply_gate(struct state_vector *state, struct qgate *gate,
            unsigned int *targets, unsigned int num_targets,
            unsigned int *controls, unsigned int num_controls,
-           unsigned int *anticontrols, unsigned int num_anticontrols);
+           unsigned int *anticontrols, unsigned int num_anticontrols,
+           struct state_vector *new_state);
 
 unsigned char
 copy_and_index(struct state_vector *state, struct state_vector *new_state,

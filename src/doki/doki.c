@@ -322,7 +322,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
     PyObject *raw_val, *state_capsule, *gate_capsule,
              *target_set, *control_set, *acontrol_set;
     void *raw_state, *raw_gate;
-    struct state_vector *state;
+    struct state_vector *state, *new_state;
     struct qgate *gate;
     unsigned char exit_code;
     unsigned int num_targets, num_controls, num_anticontrols, i;
@@ -438,8 +438,14 @@ doki_registry_apply (PyObject *self, PyObject *args)
     }
 
     if (exit_code == 0) {
+        new_state = MALLOC_TYPE(1, struct state_vector);
+        if (new_state == NULL) {
+            PyErr_SetString(DokiError, "Failed to allocate new state structure");
+            return NULL;
+        }
         exit_code = apply_gate(state, gate, targets, num_targets, controls,
-                               num_controls, anticontrols, num_anticontrols);
+                               num_controls, anticontrols, num_anticontrols,
+                               new_state);
 
         if (exit_code == 1) {
             PyErr_SetString(DokiError, "Failed to initialize new state chunk");
@@ -455,9 +461,6 @@ doki_registry_apply (PyObject *self, PyObject *args)
         }
         else if (exit_code == 5) {
             PyErr_SetString(DokiError, "Failed to apply gate");
-        }
-        else if (exit_code == 10) {
-            PyErr_SetString(DokiError, "Failed to allocate new state structure");
         }
         else if (exit_code == 11) {
             PyErr_SetString(DokiError, "Failed to allocate not_copy structure");
@@ -478,7 +481,8 @@ doki_registry_apply (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    return Py_None;
+    return PyCapsule_New((void*) new_state, "qsimov.doki.state_vector",
+                         &doki_registry_destroy);
 }
 
 static PyObject *

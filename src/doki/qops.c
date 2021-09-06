@@ -176,9 +176,9 @@ unsigned char
 apply_gate(struct state_vector *state, struct qgate *gate,
            unsigned int *targets, unsigned int num_targets,
            unsigned int *controls, unsigned int num_controls,
-           unsigned int *anticontrols, unsigned int num_anticontrols)
+           unsigned int *anticontrols, unsigned int num_anticontrols,
+           struct state_vector *new_state)
 {
-    struct state_vector *new_state;
     struct array_list_e *not_copy;
     REAL_TYPE norm_const;
     unsigned char exit_code;
@@ -194,7 +194,6 @@ apply_gate(struct state_vector *state, struct qgate *gate,
         return exit_code;
     }
 
-    new_state = MALLOC_TYPE(1, struct state_vector);
     if (new_state == NULL) {
         alist_clear(not_copy);
         free(not_copy);
@@ -234,21 +233,9 @@ apply_gate(struct state_vector *state, struct qgate *gate,
     else {
         exit_code = 6;
     }
-
-    if (exit_code == 0) {
-        state_clear(state);
-        state->first_id = new_state->first_id;
-        state->last_id = new_state->last_id;
-        state->size = new_state->size;
-        state->num_qubits = new_state->num_qubits;
-        state->vector = new_state->vector;
-        state->norm_const = new_state->norm_const;
-        new_state->vector = NULL;
-    }
+    
     alist_clear(not_copy);
     free(not_copy);
-    state_clear(new_state);
-    free(new_state);
 
     return exit_code;
 }
