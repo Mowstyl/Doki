@@ -251,7 +251,7 @@ def main():
             raise ValueError("Iterations must be at least 1")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
-        print("One qubit gate application tests...")
+        print("Measurement tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)
