@@ -39,21 +39,28 @@ def U_sparse(angle1, angle2, angle3, invert):
 
 def U_doki(angle1, angle2, angle3, invert):
     """Return doki U gate (IBM)."""
-    return doki.gate(1, U_np(angle1, angle2, angle3, invert).tolist())
+    return doki.gate(1, U_np(angle1, angle2, angle3, invert).tolist(), False)
 
 
-def apply_gate(nq, r, r_doki, g_sparse, g_doki, target):
+def apply_np(nq, r, g, target):
+    """Apply gate g to numpy column vector r."""
+    if g is not None:
+        if nq > 1:
+            left = nq - target - 1
+            right = target
+            if (left > 0):
+                g = sparse.kron(Identity(left), g)
+            if (right > 0):
+                g = sparse.kron(g, Identity(right))
+        return g.dot(r)
+    else:
+        return r[:, :]
+
+
+def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target):
     """Apply gate to registry (both numpy+sparse and doki)."""
-    new_r_doki = doki.apply(r_doki, g_doki, {target}, None, None)
-    if nq > 1:
-        left = nq - target - 1
-        right = target
-        if (left > 0):
-            g_sparse = sparse.kron(Identity(left), g_sparse)
-        if (right > 0):
-            g_sparse = sparse.kron(g_sparse, Identity(right))
-    new_r = g_sparse.dot(r)
-    return (new_r, new_r_doki)
+    new_r_doki = doki.apply(r_doki, g_doki, {target}, None, None, False)
+    return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 
 
 def test_gates_static(num_qubits):
@@ -61,7 +68,7 @@ def test_gates_static(num_qubits):
     rtol = 0
     atol = 1e-13
     r2_np = gen_reg(num_qubits)
-    r2_doki = doki.new(num_qubits)
+    r2_doki = doki.new(num_qubits, False)
     fails = []
     for i in range(num_qubits):
         r1_np = r2_np
@@ -114,7 +121,7 @@ def main():
             raise ValueError("minimum can't be greater than maximum")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
-        print("\tOne qubit gate application tests...")
+        print("One qubit gate application tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)

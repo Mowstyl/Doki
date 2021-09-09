@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <omp.h>
+
 #include "platform.h"
 #include "qstate.h"
 #include "arraylist.h"
@@ -64,17 +65,17 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
 
 unsigned char
 measure(struct state_vector *state, _Bool *result, unsigned int target,
-        struct state_vector *new_state)
+        struct state_vector *new_state, REAL_TYPE roll)
 {
     NATURAL_TYPE i, count, step;
     COMPLEX_TYPE aux;
-    REAL_TYPE sum, roll;
+    REAL_TYPE sum;
     unsigned char toggle, exit_code;
 
     toggle = 0;
     count = 0;
-    rand(); // If the seeds are close the first random will be close
-    roll = (REAL_TYPE) rand() / (REAL_TYPE) RAND_MAX;
+    // rand(); // If the seeds are close the first random will be close
+    // roll = (REAL_TYPE) rand() / (REAL_TYPE) RAND_MAX;
     // Value of bit changes each step (2^target)
     step = NATURAL_ONE << target;
     exit_code = 0;
@@ -101,6 +102,8 @@ measure(struct state_vector *state, _Bool *result, unsigned int target,
     // printf("= %lf\n", sum);
     // printf("[DEBUG] Roll: %lf\n", roll);
     if (exit_code == 0) {
+        // printf("= %lf\n", sum);
+        // printf("[DEBUG] Roll: %lf\n", roll);
         *result = sum <= roll;
         exit_code = collapse(state, target, *result, new_state);
         if (exit_code != 0) {
@@ -116,13 +119,15 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value,
          struct state_vector *new_state)
 {
     unsigned char exit_code;
-    NATURAL_TYPE i, j, count, step, iterations;
+    NATURAL_TYPE i, j, count, step;
     _Bool toggle;
     REAL_TYPE norm_const;
     COMPLEX_TYPE aux;
 
     if (state->num_qubits == 1) {
-        state_clear(state);
+        // state_clear(state);
+        new_state->vector = NULL;
+        new_state->num_qubits = 0;
         return 0;
     }
 
@@ -168,7 +173,7 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value,
         state->num_qubits = new_state->num_qubits;
         state->vector = new_state->vector;
         */
-        new_state->norm_const = norm_const;
+        new_state->norm_const = sqrt(norm_const);
         // new_state->vector = NULL;
     }
     // state_clear(new_state);

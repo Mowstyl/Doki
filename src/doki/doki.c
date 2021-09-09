@@ -36,7 +36,6 @@ static PyObject *
 doki_registry_measure (PyObject *self, PyObject *args);
 
 static PyMethodDef DokiMethods[] = {
-    {"seed", doki_seed_set, METH_VARARGS, "Set seed for random operations"},
     {"new", doki_registry_new, METH_VARARGS, "Create new registry"},
     {"gate", doki_registry_gate, METH_VARARGS, "Create new gate"},
     {"get", doki_registry_get, METH_VARARGS, "Get value from registry"},
@@ -139,28 +138,16 @@ doki_gate_destroy (PyObject *capsule)
 }
 
 static PyObject *
-doki_seed_set (PyObject *self, PyObject *args)
-{
-    long long seed, random;
-    if (!PyArg_ParseTuple(args, "L", &seed))
-    {
-        PyErr_SetString(DokiError, "Syntax: seed(integer number)");
-        return NULL;
-    }
-    // fprintf(stdout, "Seed: %lld\n", seed);
-    srand(seed);
-}
-
-static PyObject *
 doki_registry_new (PyObject *self, PyObject *args)
 {
     unsigned int num_qubits;
     unsigned char result;
     struct state_vector *state;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "I", &num_qubits))
+    if (!PyArg_ParseTuple(args, "Ip", &num_qubits, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: new(num_qubits)");
+        PyErr_SetString(DokiError, "Syntax: new(num_qubits, verbose)");
         return NULL;
     }
     if (num_qubits == 0) {
@@ -206,10 +193,11 @@ doki_registry_gate (PyObject *self, PyObject *args)
     NATURAL_TYPE i, j, k;
     COMPLEX_TYPE val;
     struct qgate *gate;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "IO", &num_qubits, &list))
+    if (!PyArg_ParseTuple(args, "IOp", &num_qubits, &list, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: gate(num_qubits, gate)");
+        PyErr_SetString(DokiError, "Syntax: gate(num_qubits, gate, verbose)");
         return NULL;
     }
     if (num_qubits == 0) {
@@ -290,9 +278,10 @@ doki_registry_get (PyObject *self, PyObject *args)
     NATURAL_TYPE id;
     COMPLEX_TYPE val;
     unsigned char exit_code;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OK", &capsule, &id)) {
-        PyErr_SetString(DokiError, "Syntax: get(registry, id)");
+    if (!PyArg_ParseTuple(args, "OKp", &capsule, &id, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: get(registry, id, verbose)");
         return NULL;
     }
 
@@ -311,6 +300,11 @@ doki_registry_get (PyObject *self, PyObject *args)
         PyErr_SetString(DokiError, "Out of bounds");
         return NULL;
     }
+    if (debug_enabled) {
+        printf("[DEBUG] raw = %lf + i%lf\n", creal(state->vector->node_elements[id]), cimag(state->vector->node_elements[id]));
+        printf("[DEBUG] normconst = %lf\n", state->norm_const);
+        printf("[DEBUG] res = %lf + i%lf\n", creal(val), cimag(val));
+    }
     result = PyComplex_FromDoubles(creal(val), cimag(val));
 
     return result;
@@ -327,10 +321,11 @@ doki_registry_apply (PyObject *self, PyObject *args)
     unsigned char exit_code;
     unsigned int num_targets, num_controls, num_anticontrols, i;
     unsigned int *targets, *controls, *anticontrols;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OOOOO", &state_capsule, &gate_capsule,
-                          &target_set, &control_set, &acontrol_set)) {
-        PyErr_SetString(DokiError, "Syntax: apply(registry, gate, target_set, control_set, anticontrol_set)");
+    if (!PyArg_ParseTuple(args, "OOOOOp", &state_capsule, &gate_capsule,
+                          &target_set, &control_set, &acontrol_set, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: apply(registry, gate, target_set, control_set, anticontrol_set, verbose)");
         return NULL;
     }
 
@@ -492,9 +487,10 @@ doki_registry_join (PyObject *self, PyObject *args)
     void *raw_state1, *raw_state2;
     struct state_vector *state1, *state2, *result;
     unsigned char exit_code;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OO", &capsule1, &capsule2)) {
-        PyErr_SetString(DokiError, "Syntax: join(most_registry, least_registry)");
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: join(most_registry, least_registry, verbose)");
         return NULL;
     }
 
@@ -548,22 +544,29 @@ doki_registry_join (PyObject *self, PyObject *args)
 static PyObject *
 doki_registry_measure (PyObject *self, PyObject *args)
 {
-    PyObject *capsule, *py_measured_val, *result, *new_capsule;
+    PyObject *capsule, *py_measured_val, *result, *new_capsule, *roll_list;
+    Py_ssize_t roll_id;
     void *raw_state;
     struct state_vector *state, *new_state, *aux;
     NATURAL_TYPE mask;
-    unsigned int i, curr_id, initial_num_qubits;
+    REAL_TYPE roll;
+    unsigned int i, curr_id, initial_num_qubits, measured_qty;
     _Bool measure_id, measured_val;
     unsigned char exit_code;
+    int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OK", &capsule, &mask)) {
-        PyErr_SetString(DokiError, "Syntax: measure(registry, mask)");
+    if (!PyArg_ParseTuple(args, "OKOp", &capsule, &mask, &roll_list, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: measure(registry, mask, roll_list, verbose)");
         return NULL;
     }
 
     raw_state = PyCapsule_GetPointer(capsule, "qsimov.doki.state_vector");
     if (raw_state == NULL) {
         PyErr_SetString(DokiError, "NULL pointer to registry");
+        return NULL;
+    }
+    if (!PyList_Check(roll_list)) {
+        PyErr_SetString(DokiError, "roll_list must be a list of real numbers in [0, 1)!");
         return NULL;
     }
     state = (struct state_vector*) raw_state;
@@ -573,6 +576,8 @@ doki_registry_measure (PyObject *self, PyObject *args)
     exit_code = 0;
     aux = state;
     new_state = state;
+    measured_qty = 0;
+    roll_id = 0;
     for (i = 0; i < initial_num_qubits; i++) {
         if (exit_code != 0) {
             break;
@@ -581,11 +586,33 @@ doki_registry_measure (PyObject *self, PyObject *args)
         measure_id = mask & (NATURAL_ONE << curr_id);
         py_measured_val = Py_None;
         if (measure_id) {
+            if (aux == NULL || aux->num_qubits == 0) {
+                if (aux != NULL && aux != state) {
+                    state_clear(aux);
+                    free(aux);
+                }
+                PyErr_SetString(DokiError, "Could not measure non_existant qubits");
+                return NULL;
+            }
+            roll = PyFloat_AsDouble(PyList_GetItem(roll_list, roll_id));
+            if (roll < 0 || roll >= 1) {
+                PyErr_SetString(DokiError, "roll not in interval [0, 1)!");
+                return NULL;
+            }
+            roll_id++;
             new_state = MALLOC_TYPE(1, struct state_vector);
             if (new_state == NULL) {
                 PyErr_SetString(DokiError, "Failed to allocate new state structure");
+                return NULL;
             }
-            exit_code = measure(aux, &measured_val, curr_id, new_state);
+            exit_code = measure(aux, &measured_val, curr_id, new_state, roll);
+            if (new_state->num_qubits > 0 && new_state->norm_const == 0.0) {
+                state_clear(new_state);
+                free(new_state);
+                PyErr_SetString(DokiError, "New normalization constant is 0. Please report this error with the steps to reproduce it.");
+                return NULL;
+            }
+            measured_qty++;
             py_measured_val = measured_val ? Py_True : Py_False;
             if (aux != state) {
                 state_clear(aux);
@@ -627,7 +654,18 @@ doki_registry_measure (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    new_capsule = PyCapsule_New((void*) new_state, "qsimov.doki.state_vector",
-                         &doki_registry_destroy);
+    if (state->num_qubits - measured_qty > 0) {
+        // printf("[DEBUG] %lf + i%lf\n", creal(new_state->vector->node_elements[0]), cimag(new_state->vector->node_elements[0]));
+        new_capsule = PyCapsule_New((void*) new_state, "qsimov.doki.state_vector",
+                                    &doki_registry_destroy);
+    }
+    else {
+        // printf("[DEBUG] ALPHA\n");
+        state_clear(new_state);
+        // printf("[DEBUG] BETA\n");
+        free(new_state);
+        // printf("[DEBUG] GAMMA\n");
+        new_capsule = Py_None;
+    }
     return PyTuple_Pack(2, new_capsule, result);
 }

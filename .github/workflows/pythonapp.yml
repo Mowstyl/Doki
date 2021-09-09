@@ -31,3 +31,4 @@ jobs:
       run: |
         python tests/reg_creation_tests.py 1 20
         python tests/one_gate_tests.py 1 20
+        python tests/measure_tests.py 1 14 1000

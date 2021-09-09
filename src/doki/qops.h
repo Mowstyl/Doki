@@ -9,7 +9,7 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2);
 
 unsigned char
 measure(struct state_vector *state, _Bool *result, unsigned int target,
-        struct state_vector *new_state);
+        struct state_vector *new_state, REAL_TYPE roll);
 
 unsigned char
 collapse(struct state_vector *state, unsigned int id, _Bool value,

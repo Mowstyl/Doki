@@ -76,6 +76,7 @@ list_clear(struct array_list *this)
 
     next = this;
     // We free memory of the complex array for each chunk
+    // printf("[DEBUG] FREE LIST!\n");
     while (next != NULL) {
         curr = next;
         free(curr->node_elements);
@@ -118,6 +119,7 @@ state_init(struct state_vector *state, unsigned int num_qubits, int init)
 void
 state_clear(struct state_vector *state)
 {
+    // printf("[DEBUG] IT'S FREE REAL STATE!\n");
     if (state->vector != NULL) {
         list_clear(state->vector);
     }
