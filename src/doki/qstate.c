@@ -166,6 +166,8 @@ state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target)
     struct array_list *chunk;
 
     if (index >= state->size) {
+        printf("[DEBUG] state->size: %llu\n", state->size);
+        printf("[DEBUG] index: %llu\n", index);
         return 2;  // 1 means index out of bounds
     }
 

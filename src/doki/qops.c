@@ -298,12 +298,12 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
         if (copy_only) {
             exit_code = state_get(state, i, &get);
             if (exit_code > 1) {
-                printf("Failed to get old state value for copy\n");
+                // printf("[DEBUG] Failed to get old state value for copy\n");
                 exit_code = 1;
             }
             *norm_const += pow(creal(get), 2) + pow(cimag(get), 2);
             if (state_set(new_state, i, get) > 1) {
-                printf("Failed to copy value to new state\n");
+                // printf("[DEBUG] Failed to copy value to new state\n");
                 exit_code = 1;
                 continue;
             }
@@ -370,7 +370,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
             }
             aux_code = state_get(state, reg_index, &get);
             if (aux_code == 2) {
-                printf("Failed to get old state value\n");
+                // printf("[DEBUG] Failed to get old state value\n");
                 aux_code = 1;
                 break;
             }
@@ -379,7 +379,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
         // norm_const += cabs(sum) * cabs(sum);
         *norm_const += pow(creal(sum), 2) + pow(cimag(sum), 2);
         if (state_set(new_state, curr_id, sum) > 1) {
-            printf("Failed to set new state value\n");
+            // printf("[DEBUG] Failed to set new state value\n");
             aux_code = 1;
             continue;
         }

@@ -397,12 +397,12 @@ doki_registry_apply (PyObject *self, PyObject *args)
         raw_val = PySet_Pop(target_set);
         if(!PyLong_Check(raw_val)) {
             PyErr_SetString(DokiError, "target_set must be a set qubit ids (unsigned integers)");
-            break;
+            return NULL;
         }
         targets[i] = PyLong_AsLong(raw_val);
         if (targets[i] >= state->num_qubits) {
             PyErr_SetString(DokiError, "Target qubit out of range");
-            break;
+            return NULL;
         }
     }
 
@@ -410,12 +410,12 @@ doki_registry_apply (PyObject *self, PyObject *args)
         raw_val = PySet_Pop(control_set);
         if(!PyLong_Check(raw_val)) {
             PyErr_SetString(DokiError, "control_set must be a set qubit ids (unsigned integers)");
-            break;
+            return NULL;
         }
         controls[i] = PyLong_AsLong(raw_val);
         if (controls[i] >= state->num_qubits) {
             PyErr_SetString(DokiError, "Control qubit out of range");
-            break;
+            return NULL;
         }
     }
 
@@ -423,12 +423,12 @@ doki_registry_apply (PyObject *self, PyObject *args)
         raw_val = PySet_Pop(acontrol_set);
         if(!PyLong_Check(raw_val)) {
             PyErr_SetString(DokiError, "anticontrol_set must be a set qubit ids (unsigned integers)");
-            break;
+            return NULL;
         }
         anticontrols[i] = PyLong_AsLong(raw_val);
         if (anticontrols[i] >= state->num_qubits) {
             PyErr_SetString(DokiError, "Anticontrol qubit out of range");
-            break;
+            return NULL;
         }
     }
 
@@ -438,6 +438,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
             PyErr_SetString(DokiError, "Failed to allocate new state structure");
             return NULL;
         }
+        // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls, num_anticontrols);
         exit_code = apply_gate(state, gate, targets, num_targets, controls,
                                num_controls, anticontrols, num_anticontrols,
                                new_state);

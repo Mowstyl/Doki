@@ -45,8 +45,9 @@ def U_doki(angle1, angle2, angle3, invert):
 def apply_np(nq, r, g, target):
     """Apply gate g to numpy column vector r."""
     if g is not None:
+        nqg = int(np.log2(g.shape[0]))
         if nq > 1:
-            left = nq - target - 1
+            left = nq - target - nqg
             right = target
             if (left > 0):
                 g = sparse.kron(Identity(left), g)
@@ -59,6 +60,9 @@ def apply_np(nq, r, g, target):
 
 def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target):
     """Apply gate to registry (both numpy+sparse and doki)."""
+    # print(doki_to_np(r_doki, nq))
+    # print(g_doki)
+    # print({target})
     new_r_doki = doki.apply(r_doki, g_doki, {target}, None, None, False)
     return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 

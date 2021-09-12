@@ -84,6 +84,7 @@ alist_init(struct array_list_e *this, NATURAL_TYPE size)
 {
     unsigned char vector_result;
 
+    // printf("[DEBUG] arraylist.c:alist_init %llu\n", size);
     this->first_id = 0;
     this->size = size;
     this->last_id = this->size - 1;
@@ -124,6 +125,8 @@ alist_set(struct array_list_e *this, NATURAL_TYPE index, NATURAL_TYPE value)
         /* Not in this computation node */
         return 1;
     }
+    // printf("[DEBUG] arraylist.c:alist_set index: %llu\n", index);
+    // printf("[DEBUG] arraylist.c:alist_set value %llu\n", value);
 
     partial_id = index - this->first_id;
     chunk_id = partial_id / this->vector->node_size;
