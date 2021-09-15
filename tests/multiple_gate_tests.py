@@ -12,7 +12,7 @@ from one_gate_tests import Identity, U_np, U_sparse, U_doki, \
 def swap_downstairs(id1, id2, nq, reg):
     """Swap qubit id1 with next qubit until reaches id2 (id1 < id2)."""
     swap = SWAP_np()
-    for i in range(id1, id2 + 1):
+    for i in range(id1, id2):
         reg = apply_np(nq, reg, swap, i)
     return reg
 
@@ -20,21 +20,21 @@ def swap_downstairs(id1, id2, nq, reg):
 def swap_upstairs(id1, id2, nq, reg):
     """Swap qubit id1 with next qubit until reaches id2 (id1 > id2)."""
     swap = SWAP_np()
-    for i in range(id2, id1 - 1, -1):
+    for i in range(id2 - 1, id1 - 1, -1):
         reg = apply_np(nq, reg, swap, i)
     return reg
 
 
 def swap_downstairs_list(id1, id2, li):
     """Swap list element id1 with the next until reaches id2 (id1 > id2)."""
-    for i in range(id1, id2 + 1):
+    for i in range(id1, id2):
         li[i], li[i+1] = li[i+1], li[i]
     return li
 
 
 def swap_upstairs_list(id1, id2, li):
     """Swap list element id1 with the next until reaches id2 (id1 < id2)."""
-    for i in range(id2, id1 - 1, -1):
+    for i in range(id2 - 1, id1 - 1, -1):
         li[i], li[i+1] = li[i+1], li[i]
     return li
 
@@ -94,14 +94,14 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg):
     for i in range(len(extended_cuac)):
         if qubitIds[i] != extended_cuac[i]:
             indaux = qubitIds.index(extended_cuac[i])
-            reg = swap_upstairs(i, indaux - 1, nq, reg)
-            qubitIds = swap_upstairs_list(i, indaux - 1, qubitIds)
+            reg = swap_upstairs(i, indaux, nq, reg)
+            qubitIds = swap_upstairs_list(i, indaux, qubitIds)
     reg = apply_np(nq, reg, CU(gate, len(cuac)), 0)
     for i in range(nq):
         if qubitIds[i] != i:
             indaux = qubitIds.index(i)
-            reg = swap_upstairs(i, indaux - 1, nq, reg)
-            qubitIds = swap_upstairs_list(i, indaux - 1, qubitIds)
+            reg = swap_upstairs(i, indaux, nq, reg)
+            qubitIds = swap_upstairs_list(i, indaux, qubitIds)
     reg = negateQubits(acset, nq, reg)
     return reg
 
@@ -160,7 +160,7 @@ def multiple_target_tests(nq, rtol, atol, verbose=True):
             if id1 == id2:
                 continue
             r2_np = sparseTwoGate(sparsegate, id1, id2, nq, r1_np)
-            r2_doki = doki.apply(r1_doki, dokigate, {id1, id2},
+            r2_doki = doki.apply(r1_doki, dokigate, [id1, id2],
                                  None, None, False)
             if not np.allclose(doki_to_np(r2_doki, nq), r2_np,
                                rtol=rtol, atol=atol):
@@ -170,6 +170,7 @@ def multiple_target_tests(nq, rtol, atol, verbose=True):
                     print(r2_np == doki_to_np(r2_doki, nq))
                 raise AssertionError("Error comparing results of two" +
                                      " qubit gate")
+            del r2_doki
 
 
 def controlled_tests(nq, rtol, atol, verbose=False):
@@ -204,7 +205,7 @@ def controlled_tests(nq, rtol, atol, verbose=False):
             print("   controls: " + str(control))
             print("   anticontrols: " + str(anticontrol))
         r2_np = applyCACU(numpygate, id, control, anticontrol, nq, r1_np)
-        r2_doki = doki.apply(r1_doki, gate, {int(id)},
+        r2_doki = doki.apply(r1_doki, gate, [int(id)],
                              set(control), set(anticontrol), False)
         isControl = not isControl
         lastid = id

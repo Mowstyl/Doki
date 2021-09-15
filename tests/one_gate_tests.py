@@ -63,7 +63,7 @@ def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target):
     # print(doki_to_np(r_doki, nq))
     # print(g_doki)
     # print({target})
-    new_r_doki = doki.apply(r_doki, g_doki, {target}, None, None, False)
+    new_r_doki = doki.apply(r_doki, g_doki, [target], None, None, False)
     return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 
 

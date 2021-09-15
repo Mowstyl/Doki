@@ -314,7 +314,7 @@ static PyObject *
 doki_registry_apply (PyObject *self, PyObject *args)
 {
     PyObject *raw_val, *state_capsule, *gate_capsule,
-             *target_set, *control_set, *acontrol_set;
+             *target_list, *control_set, *acontrol_set;
     void *raw_state, *raw_gate;
     struct state_vector *state, *new_state;
     struct qgate *gate;
@@ -324,8 +324,8 @@ doki_registry_apply (PyObject *self, PyObject *args)
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OOOOOp", &state_capsule, &gate_capsule,
-                          &target_set, &control_set, &acontrol_set, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: apply(registry, gate, target_set, control_set, anticontrol_set, verbose)");
+                          &target_list, &control_set, &acontrol_set, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: apply(registry, gate, target_list, control_set, anticontrol_set, verbose)");
         return NULL;
     }
 
@@ -343,12 +343,12 @@ doki_registry_apply (PyObject *self, PyObject *args)
     }
     gate = (struct qgate*) raw_gate;
 
-    if (!PySet_Check(target_set)) {
-        PyErr_SetString(DokiError, "target_set must be a set");
+    if (!PyList_Check(target_list)) {
+        PyErr_SetString(DokiError, "target_list must be a list");
         return NULL;
     }
 
-    num_targets = PySet_Size(target_set);
+    num_targets = PyList_Size(target_list);
     if (num_targets != gate->num_qubits) {
         PyErr_SetString(DokiError, "Wrong number of targets specified for that gate");
         return NULL;
@@ -394,9 +394,9 @@ doki_registry_apply (PyObject *self, PyObject *args)
 
     exit_code = 0;
     for (i = 0; i < num_targets; i++) {
-        raw_val = PySet_Pop(target_set);
+        raw_val = PyList_GetItem(target_list, i);
         if(!PyLong_Check(raw_val)) {
-            PyErr_SetString(DokiError, "target_set must be a set qubit ids (unsigned integers)");
+            PyErr_SetString(DokiError, "target_list must be a list of qubit ids (unsigned integers)");
             return NULL;
         }
         targets[i] = PyLong_AsLong(raw_val);
