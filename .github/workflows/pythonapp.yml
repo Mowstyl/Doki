@@ -29,7 +29,8 @@ jobs:
         python -m pip install --use-feature=in-tree-build .
     - name: Test
       run: |
-        python tests/reg_creation_tests.py 1 20
-        python tests/one_gate_tests.py 1 20
-        python tests/measure_tests.py 1 14 1000
-        python tests/multiple_gate_tests.py 2 14
+        python tests/reg_creation_tests.py 1 14
+        python tests/one_gate_tests.py 1 14
+        python tests/measure_tests.py 1 10 1000
+        python tests/multiple_gate_tests.py 2 10
+        python tests/join_regs_tests.py 14

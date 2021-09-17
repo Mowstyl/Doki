@@ -1,4 +1,4 @@
-# QDoki
+# Doki
 
 Quantum computing simulation module, written in C.
 Serves as the core of QSimov.
