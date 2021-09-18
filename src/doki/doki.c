@@ -278,7 +278,7 @@ doki_registry_get (PyObject *self, PyObject *args)
     NATURAL_TYPE id;
     COMPLEX_TYPE val;
     unsigned char exit_code;
-    _Bool canonical, debug_enabled;
+    int canonical, debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OKpp", &capsule, &id, &canonical, &debug_enabled)) {
         PyErr_SetString(DokiError, "Syntax: get(registry, id, canonical, verbose)");
