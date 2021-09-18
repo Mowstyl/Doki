@@ -278,10 +278,10 @@ doki_registry_get (PyObject *self, PyObject *args)
     NATURAL_TYPE id;
     COMPLEX_TYPE val;
     unsigned char exit_code;
-    int debug_enabled;
+    _Bool canonical, debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OKp", &capsule, &id, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: get(registry, id, verbose)");
+    if (!PyArg_ParseTuple(args, "OKpp", &capsule, &id, &canonical, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: get(registry, id, canonical, verbose)");
         return NULL;
     }
 
@@ -291,7 +291,7 @@ doki_registry_get (PyObject *self, PyObject *args)
         return NULL;
     }
     state = (struct state_vector*) raw_state;
-    exit_code = state_get(state, id, &val);
+    exit_code = state_get(state, id, &val, canonical);
     if (exit_code == 1) {
         PyErr_SetString(DokiError, "Not here");
         return NULL;

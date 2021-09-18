@@ -45,6 +45,8 @@ struct state_vector
   struct array_list *vector;
   /* normalization constant */
   REAL_TYPE          norm_const;
+  /* e^-(complex argument of the first element)*/
+  COMPLEX_TYPE       fcarg;
 };
 
 unsigned char
@@ -66,6 +68,6 @@ unsigned char
 state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value);
 
 unsigned char
-state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target);
+state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target, _Bool canonical);
 
 #endif

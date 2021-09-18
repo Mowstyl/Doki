@@ -15,7 +15,8 @@ unsigned char
 join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
 {
     NATURAL_TYPE i, j, new_index;
-    COMPLEX_TYPE o1, o2;
+    COMPLEX_TYPE o1, o2, aux;
+    REAL_TYPE arg;
     unsigned char exit_code, aux_code;
     _Bool errored;
 
@@ -33,7 +34,7 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
         if (aux_code != 0) {
             continue;
         }
-        aux_code |= state_get(s1, i, &o1);
+        aux_code |= state_get(s1, i, &o1, 0);
         if (aux_code != 0 && !errored) {
             errored = 1;
             printf("Failed to get state element %llu from s1\n", i);
@@ -43,7 +44,7 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
                 break;
             }
             new_index = i * s2->size + j;
-            aux_code |= state_get(s2, j, &o2);
+            aux_code |= state_get(s2, j, &o2, 0);
             if (aux_code != 0 && !errored) {
                 errored = 1;
                 printf("Failed to get state element %llu from s2\n", j);
@@ -59,6 +60,13 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
     if (exit_code != 0) {
         state_clear(r);
         return 5;
+    }
+    else {
+        exit_code = state_get(r, 0, &aux, 0);
+        if (exit_code == 0) {
+            arg = carg(aux);
+            r->fcarg = complex_init(cos(arg), -sin(arg));
+        }
     }
     return 0;
 }
@@ -90,7 +98,7 @@ measure(struct state_vector *state, _Bool *result, unsigned int target,
             sum += 0;
         }
         else {
-            exit_code = state_get(state, i, &aux);
+            exit_code = state_get(state, i, &aux, 0);
             sum += pow(creal(aux), 2) + pow(cimag(aux), 2);
         }
         count++;
@@ -123,6 +131,7 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value,
     _Bool toggle;
     REAL_TYPE norm_const;
     COMPLEX_TYPE aux;
+    REAL_TYPE arg;
 
     if (state->num_qubits == 1) {
         // state_clear(state);
@@ -152,7 +161,7 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value,
             break;
         }
         if (toggle == value) {
-            exit_code |= state_get(state, i, &aux);
+            exit_code |= state_get(state, i, &aux, 0);
             exit_code |= state_set(new_state, j, aux);
             norm_const += pow(creal(aux), 2) + pow(cimag(aux), 2);
             j++;
@@ -174,6 +183,11 @@ collapse(struct state_vector *state, unsigned int target_id, _Bool value,
         state->vector = new_state->vector;
         */
         new_state->norm_const = sqrt(norm_const);
+        exit_code = state_get(new_state, 0, &aux, 0);
+        if (exit_code == 0) {
+            arg = carg(aux);
+            new_state->fcarg = complex_init(cos(arg), -sin(arg));
+        }
         // new_state->vector = NULL;
     }
     // state_clear(new_state);
@@ -190,7 +204,8 @@ apply_gate(struct state_vector *state, struct qgate *gate,
            struct state_vector *new_state)
 {
     struct array_list_e *not_copy;
-    REAL_TYPE norm_const;
+    REAL_TYPE norm_const, arg;
+    COMPLEX_TYPE aux;
     unsigned char exit_code;
 
     not_copy = MALLOC_TYPE(1, struct array_list_e);
@@ -235,6 +250,11 @@ apply_gate(struct state_vector *state, struct qgate *gate,
                                     new_state, not_copy, &norm_const);
         if (exit_code == 0) {
             new_state->norm_const = sqrt(norm_const);
+            exit_code = state_get(new_state, 0, &aux, 0);
+            if (exit_code == 0) {
+                arg = carg(aux);
+                new_state->fcarg = complex_init(cos(arg), -sin(arg));
+            }
         }
         else {
             exit_code = 5;
@@ -296,7 +316,7 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
         }
         // If copy_only is true it means that we just need to copy the old state element
         if (copy_only) {
-            exit_code = state_get(state, i, &get);
+            exit_code = state_get(state, i, &get, 0);
             if (exit_code > 1) {
                 // printf("[DEBUG] Failed to get old state value for copy\n");
                 exit_code = 1;
@@ -368,7 +388,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                     reg_index &= ~(NATURAL_ONE << targets[k]);
                 }
             }
-            aux_code = state_get(state, reg_index, &get);
+            aux_code = state_get(state, reg_index, &get, 0);
             if (aux_code == 2) {
                 // printf("[DEBUG] Failed to get old state value\n");
                 aux_code = 1;

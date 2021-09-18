@@ -66,7 +66,7 @@ def main():
             raise ValueError("number of qubits must be at least 2")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
-        print("Multiple qubit gate application tests...")
+        print("Registry tensor product tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)

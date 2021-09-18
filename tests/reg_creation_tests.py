@@ -11,9 +11,9 @@ def gen_reg(nq):
     return r
 
 
-def doki_to_np(r_doki, num_qubits):
+def doki_to_np(r_doki, num_qubits, canonical=False):
     """Return numpy array with r_doki's column vector."""
-    return np.transpose(np.array([doki.get(r_doki, i, False)
+    return np.transpose(np.array([doki.get(r_doki, i, canonical, False)
                                   for i in range(2**num_qubits)], ndmin=2))
 
 

@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <complex.h>
+#include <math.h>
 #include "platform.h"
 #include "qstate.h"
 
@@ -95,6 +97,7 @@ state_init(struct state_vector *state, unsigned int num_qubits, int init)
     state->last_id = state->size - 1;
     state->num_qubits = num_qubits;
     state->norm_const = 1;
+    state->fcarg = complex_init(1, 0);
     state->vector = MALLOC_TYPE(1, struct array_list);
     if (state->vector != NULL) {
         vector_result = list_new(state->vector, state->size, init);
@@ -128,12 +131,14 @@ state_clear(struct state_vector *state)
     state->first_id = 0;
     state->last_id = 0;
     state->norm_const = 0.0;
+    state->fcarg = complex_init(0, 0);
     state->vector = NULL;
 }
 
 unsigned char
 state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value)
 {
+    REAL_TYPE arg;
     NATURAL_TYPE i, position, chunk_id, partial_id;
     struct array_list *chunk;
 
@@ -159,15 +164,15 @@ state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value)
 }
 
 unsigned char
-state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target)
+state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target, _Bool canonical)
 {
     NATURAL_TYPE i, position, chunk_id, partial_id;
     COMPLEX_TYPE aux;
     struct array_list *chunk;
 
     if (index >= state->size) {
-        printf("[DEBUG] state->size: %llu\n", state->size);
-        printf("[DEBUG] index: %llu\n", index);
+        // printf("[DEBUG] qstate.c:state_get state->size: %llu\n", state->size);
+        // printf("[DEBUG] qstate.c:state_get index: %llu\n", index);
         return 2;  // 1 means index out of bounds
     }
 
@@ -185,6 +190,9 @@ state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target)
     }
     aux = complex_div_r(chunk->node_elements[position], state->norm_const);
     *target = fix_value(aux);
+    if (canonical) {
+        *target = complex_mult(*target, state->fcarg);
+    }
 
     return 0;
 }
