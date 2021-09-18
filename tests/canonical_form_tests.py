@@ -1,4 +1,4 @@
-"""Join registry tests."""
+"""Get canonical state tests."""
 import doki
 import numpy as np
 import sys
@@ -9,12 +9,6 @@ from reg_creation_tests import doki_to_np
 def phase_doki(angle):
     """Return a gate with no observable changes (hidden phase)."""
     npgate = np.exp(1j * angle) * np.eye(2)
-    return doki.gate(1, npgate.tolist(), False)
-
-
-def H_doki():
-    """Return a Hadamard gate."""
-    npgate = (np.sqrt(2)/2) * np.array([[1, 1], [1, -1]], dtype=complex)
     return doki.gate(1, npgate.tolist(), False)
 
 
@@ -119,7 +113,7 @@ def main():
         print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
-                         " <minimum number of qubits (min 2)>" +
+                         " <minimum number of qubits (min 1)>" +
                          " <maximum number of qubits> <seed (optional)>")
 
 

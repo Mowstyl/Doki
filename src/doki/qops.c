@@ -10,6 +10,35 @@
 #include "qops.h"
 
 
+unsigned char
+probability(struct state_vector *state, unsigned int target_id, REAL_TYPE *value) {
+    NATURAL_TYPE i, step, count;
+    COMPLEX_TYPE aux;
+    _Bool read;
+    unsigned char exit_code;
+
+    step = NATURAL_ONE << target_id;
+    read = 0;
+    count = 0;
+    *value = 0;
+
+    for (i = 0; i < state->size; i++) {
+        if (read != 0) {
+            exit_code = state_get(state, i, &aux, 0);
+            if (exit_code != 0) {
+                break;
+            }
+            *value += pow(creal(aux), 2) + pow(cimag(aux), 2);
+        }
+        count++;
+        if (count == step) {
+            read = !read;
+            count = 0;
+        }
+    }
+
+    return exit_code;
+}
 
 unsigned char
 join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)

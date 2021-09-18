@@ -1,4 +1,4 @@
-"""Hadamard tests."""
+"""One qubit gate tests."""
 import doki
 import numpy as np
 import scipy.sparse as sparse

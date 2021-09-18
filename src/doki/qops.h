@@ -12,6 +12,9 @@ measure(struct state_vector *state, _Bool *result, unsigned int target,
         struct state_vector *new_state, REAL_TYPE roll);
 
 unsigned char
+probability(struct state_vector *state, unsigned int target_id, REAL_TYPE *value);
+
+unsigned char
 collapse(struct state_vector *state, unsigned int id, _Bool value,
          struct state_vector *new_state);
 

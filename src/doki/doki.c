@@ -35,6 +35,9 @@ doki_registry_join (PyObject *self, PyObject *args);
 static PyObject *
 doki_registry_measure (PyObject *self, PyObject *args);
 
+static PyObject *
+doki_registry_prob (PyObject *self, PyObject *args);
+
 static PyMethodDef DokiMethods[] = {
     {"new", doki_registry_new, METH_VARARGS, "Create new registry"},
     {"gate", doki_registry_gate, METH_VARARGS, "Create new gate"},
@@ -42,6 +45,7 @@ static PyMethodDef DokiMethods[] = {
     {"apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
     {"join", doki_registry_join, METH_VARARGS, "Merges two registries"},
     {"measure", doki_registry_measure, METH_VARARGS, "Measures and collapses specified qubits"},
+    {"prob", doki_registry_prob, METH_VARARGS, "Get the chances of obtaining 1 when measuring a certain qubit"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -669,4 +673,36 @@ doki_registry_measure (PyObject *self, PyObject *args)
         new_capsule = Py_None;
     }
     return PyTuple_Pack(2, new_capsule, result);
+}
+
+static PyObject *
+doki_registry_prob (PyObject *self, PyObject *args)
+{
+    PyObject *capsule, *result;
+    void *raw_state;
+    struct state_vector *state;
+    unsigned int id;
+    REAL_TYPE odds;
+    unsigned char exit_code;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OIp", &capsule, &id, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: prob(registry, qubit_id, verbose)");
+        return NULL;
+    }
+
+    raw_state = PyCapsule_GetPointer(capsule, "qsimov.doki.state_vector");
+    if (raw_state == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to registry");
+        return NULL;
+    }
+    state = (struct state_vector*) raw_state;
+    exit_code = probability(state, id, &odds);
+    if (exit_code != 0) {
+        if (exit_code == 2) {
+            PyErr_SetString(DokiError, "Tried to access element out of bounds");
+        }
+        return NULL;
+    }
+    return PyFloat_FromDouble(odds);
 }

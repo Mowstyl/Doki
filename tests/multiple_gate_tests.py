@@ -1,4 +1,4 @@
-"""Hadamard tests."""
+"""Multiple qubit gate tests."""
 import doki
 import numpy as np
 import scipy.sparse as sparse
@@ -232,8 +232,8 @@ def main():
     if 2 <= len(argv) <= 3:
         min_qubits = int(argv[0])
         max_qubits = int(argv[1])
-        if (min_qubits < 1):
-            raise ValueError("minimum number of qubits must be at least 1")
+        if (min_qubits < 2):
+            raise ValueError("minimum number of qubits must be at least 2")
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
         if seed is not None and (seed < 0 or seed >= 2**32):

@@ -1,4 +1,4 @@
-"""Hadamard tests."""
+"""Measurement tests."""
 import doki
 import gc
 import numpy as np
