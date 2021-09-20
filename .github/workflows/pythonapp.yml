@@ -18,6 +18,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --upgrade build
         python -m pip install numpy scipy
+        apt install libomp-dev
     - name: Lint with flake8
       run: |
         pip install flake8
