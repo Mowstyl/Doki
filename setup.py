@@ -46,7 +46,8 @@ def main():
             "Topic :: Scientific/Engineering",
         ],
         keywords="qsimov simulator quantum",
-        ext_modules=[Extension('doki', sources=sources)],
+        ext_modules=[Extension('doki', sources=sources,
+                               extra_compile_args=["-openmp"])],
         data_files=[('headers', headers)],
         python_requires=">=3.6",
     )

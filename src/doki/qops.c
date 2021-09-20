@@ -59,7 +59,7 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
     #pragma omp parallel for reduction (|:exit_code) \
                              default(none) \
                              shared (r, s1, s2) \
-                             private (i, o1, aux_code, exit_code, new_index, errored)
+                             private (i, o1, aux_code, new_index, errored)
     for (i = 0; i < s1->size; i++) {
         if (aux_code != 0) {
             continue;
@@ -316,10 +316,10 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
     #pragma omp parallel for reduction (+:count) \
                              reduction (|:exit_code) \
                              default(none) \
-                             shared (state, count, not_copy, new_state, \
+                             shared (state, not_copy, new_state, \
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
-                                     exit_code, norm_const, count) \
+                                     norm_const) \
                              private (copy_only, get, i, j)
     for (i = 0; i < state->size; i++) {
         // If there has been any error in this thread, we skip
@@ -390,8 +390,8 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                                      targets, num_targets, \
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
-                                     norm_const, aux_code) \
-                             private (curr_id, copy_only, get, sum, row, reg_index, i, j, k)
+                                     norm_const) \
+                             private (curr_id, get, sum, row, reg_index, i, j, k)
     for (i = 0; i < not_copy->size; i++) {
         // If there has been any error in this thread, we skip
         if (aux_code != 0) {

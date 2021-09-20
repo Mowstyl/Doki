@@ -427,7 +427,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    num_targets = PyList_Size(target_list);
+    num_targets = (unsigned int) PyList_Size(target_list);
     if (num_targets != gate->num_qubits) {
         PyErr_SetString(DokiError, "Wrong number of targets specified for that gate");
         return NULL;
@@ -435,7 +435,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
 
     num_controls = 0;
     if (PySet_Check(control_set)) {
-        num_controls = PySet_Size(control_set);
+        num_controls = (unsigned int) PySet_Size(control_set);
     }
     else if (control_set != Py_None) {
         PyErr_SetString(DokiError, "control_set must be a set or None");
@@ -444,7 +444,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
 
     num_anticontrols = 0;
     if (PySet_Check(acontrol_set)) {
-        num_anticontrols = PySet_Size(acontrol_set);
+        num_anticontrols = (unsigned int) PySet_Size(acontrol_set);
     }
     else if (acontrol_set != Py_None) {
         PyErr_SetString(DokiError, "anticontrol_set must be a set or None");

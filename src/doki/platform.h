@@ -142,9 +142,9 @@
 #define CALLOC_TYPE(n,type) ((type *) calloc((n), sizeof(type)))
 #define REALLOC_TYPE(p,n,type) ((type *) realloc((p), (n) * sizeof(type)))
 
-#define NATURAL_TYPE unsigned long long int
-#define NATURAL_MAX ULLONG_MAX
-#define NATURAL_ONE 1ULL
+#define NATURAL_TYPE long long int
+#define NATURAL_MAX LLONG_MAX
+#define NATURAL_ONE 1LL
 #define COMPLEX_ZERO complex_init(0, 0)
 #define COMPLEX_ONE complex_init(1, 0)
 #define CHUNK_MAX ULONG_MAX
