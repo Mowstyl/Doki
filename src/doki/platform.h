@@ -46,6 +46,18 @@
  *  Number one literal for the specified NATURAL_TYPE. Currently 1ULL.
  */
 
+/** \def COMPLEX_ONE
+ *  \brief Literal for complex number one.
+ *
+ *  Number one literal for the specified COMPLEX_TYPE. Currently complex_init(1, 0).
+ */
+
+/** \def COMPLEX_ZERO
+ *  \brief Literal for complex number zero.
+ *
+ *  Number zero literal for the specified COMPLEX_TYPE. Currently complex_init(0, 0).
+ */
+
 /** \def CHUNK_MAX
  *  \brief Max number of chunks in a list.
  *

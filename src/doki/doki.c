@@ -48,10 +48,40 @@ static PyObject *
 doki_funmatrix_get (PyObject *self, PyObject *args);
 
 static PyObject *
+doki_funmatrix_add (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_sub (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_scalar_mul (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_scalar_div (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_matmul (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_ewmul (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_kron (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_transpose (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_dagger (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_shape (PyObject *self, PyObject *args);
+
+static PyObject *
 doki_funmatrix_partialtrace (PyObject *self, PyObject *args);
 
 static PyObject *
-doki_registry_trace (PyObject *self, PyObject *args);
+doki_funmatrix_trace (PyObject *self, PyObject *args);
 
 static PyMethodDef DokiMethods[] = {
     {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
@@ -63,6 +93,18 @@ static PyMethodDef DokiMethods[] = {
     {"registry_prob", doki_registry_prob, METH_VARARGS, "Get the chances of obtaining 1 when measuring a certain qubit"},
     {"registry_density", doki_registry_density, METH_VARARGS, "Get the density matrix"},
     {"funmatrix_get", doki_funmatrix_get, METH_VARARGS, "Get a value from a functional matrix"},
+    {"funmatrix_add", doki_funmatrix_add, METH_VARARGS, "Get the addition of two functional matrices"},
+    {"funmatrix_sub", doki_funmatrix_sub, METH_VARARGS, "Get the substraction of two functional matrices"},
+    {"funmatrix_scalar_mul", doki_funmatrix_scalar_mul, METH_VARARGS, "Get the product of a scalar and a functional matrix"},
+    {"funmatrix_scalar_div", doki_funmatrix_scalar_div, METH_VARARGS, "Get the division of a functional matrix by a scalar"},
+    {"funmatrix_matmul", doki_funmatrix_matmul, METH_VARARGS, "Get the matrix product of two functional matrices"},
+    {"funmatrix_ewmul", doki_funmatrix_ewmul, METH_VARARGS, "Get the entity-wise multiplication of two functional matrices"},
+    {"funmatrix_kron", doki_funmatrix_kron, METH_VARARGS, "Get the Kronecker product of two functional matrices"},
+    {"funmatrix_transpose", doki_funmatrix_transpose, METH_VARARGS, "Get the transpose of a functional matrix"},
+    {"funmatrix_dagger", doki_funmatrix_dagger, METH_VARARGS, "Get the conjugate-transpose of a functional matrix"},
+    {"funmatrix_shape", doki_funmatrix_shape, METH_VARARGS, "Get a tuple with the shape of the matrix"},
+    {"funmatrix_partialtrace", doki_funmatrix_partialtrace, METH_VARARGS, "Get the partial trace of a functional matrix"},
+    {"funmatrix_trace", doki_funmatrix_trace, METH_VARARGS, "Get the trace of a functional matrix"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -169,7 +211,6 @@ doki_funmatrix_destroy (PyObject *capsule)
 {
     FunctionalMatrix *matrix;
     void *raw_matrix;
-    NATURAL_TYPE i;
 
     raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
     if (raw_matrix != NULL) {
@@ -188,7 +229,7 @@ doki_registry_new (PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "Ip", &num_qubits, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: new(num_qubits, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_new(num_qubits, verbose)");
         return NULL;
     }
     if (num_qubits == 0) {
@@ -238,7 +279,7 @@ doki_gate_new (PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "IOp", &num_qubits, &list, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: gate(num_qubits, gate, verbose)");
+        PyErr_SetString(DokiError, "Syntax: gate_new(num_qubits, gate, verbose)");
         return NULL;
     }
     if (num_qubits == 0) {
@@ -322,7 +363,7 @@ doki_registry_get (PyObject *self, PyObject *args)
     int canonical, debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OKpp", &capsule, &id, &canonical, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: get(registry, id, canonical, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_get(registry, id, canonical, verbose)");
         return NULL;
     }
 
@@ -366,7 +407,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "OOOOOp", &state_capsule, &gate_capsule,
                           &target_list, &control_set, &acontrol_set, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: apply(registry, gate, target_list, control_set, anticontrol_set, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_apply(registry, gate, target_list, control_set, anticontrol_set, verbose)");
         return NULL;
     }
 
@@ -532,7 +573,7 @@ doki_registry_join (PyObject *self, PyObject *args)
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: join(most_registry, least_registry, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_join(most_registry, least_registry, verbose)");
         return NULL;
     }
 
@@ -598,7 +639,7 @@ doki_registry_measure (PyObject *self, PyObject *args)
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OKOp", &capsule, &mask, &roll_list, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: measure(registry, mask, roll_list, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_measure(registry, mask, roll_list, verbose)");
         return NULL;
     }
 
@@ -715,7 +756,7 @@ doki_registry_measure (PyObject *self, PyObject *args)
 static PyObject *
 doki_registry_prob (PyObject *self, PyObject *args)
 {
-    PyObject *capsule, *result;
+    PyObject *capsule;
     void *raw_state;
     struct state_vector *state;
     unsigned int id;
@@ -724,7 +765,7 @@ doki_registry_prob (PyObject *self, PyObject *args)
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OIp", &capsule, &id, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: prob(registry, qubit_id, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_prob(registry, qubit_id, verbose)");
         return NULL;
     }
 
@@ -747,14 +788,14 @@ doki_registry_prob (PyObject *self, PyObject *args)
 static PyObject *
 doki_registry_density (PyObject *self, PyObject *args)
 {
-    PyObject *state_capsule, *capsule;
+    PyObject *state_capsule;
     void *raw_state;
     FunctionalMatrix *densityMatrix;
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "Op", &state_capsule, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: density(state, verbose)");
+        PyErr_SetString(DokiError, "Syntax: registry_density(state, verbose)");
         return NULL;
     }
 
@@ -776,7 +817,7 @@ doki_registry_density (PyObject *self, PyObject *args)
 static PyObject *
 doki_funmatrix_get (PyObject *self, PyObject *args)
 {
-    PyObject *result, *capsule;
+    PyObject *capsule;
     void *raw_matrix;
     FunctionalMatrix *matrix;
     NATURAL_TYPE i, j;
@@ -785,7 +826,7 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "OKKp", &capsule, &i, &j, &debug_enabled))
     {
-        PyErr_SetString(DokiError, "Syntax: density(funmatrix, i, j, verbose)");
+        PyErr_SetString(DokiError, "Syntax: funmatrix_get(funmatrix, i, j, verbose)");
         return NULL;
     }
 
@@ -812,4 +853,428 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
     }
 
     return PyComplex_FromDoubles(creal(val), cimag(val));
+}
+
+static PyObject *
+doki_funmatrix_add (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_matrix1, *raw_matrix2;
+    FunctionalMatrix *matrix1, *matrix2, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_add(funmatrix1, funmatrix2, verbose)");
+        return NULL;
+    }
+
+    raw_matrix1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.funmatrix");
+    if (raw_matrix1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 1");
+        return NULL;
+    }
+    matrix1 = (FunctionalMatrix*) raw_matrix1;
+
+    raw_matrix2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.funmatrix");
+    if (raw_matrix2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 2");
+        return NULL;
+    }
+    matrix2 = (FunctionalMatrix*) raw_matrix2;
+
+    result = madd(matrix1, matrix2);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_sub (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_matrix1, *raw_matrix2;
+    FunctionalMatrix *matrix1, *matrix2, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_sub(funmatrix1, funmatrix2, verbose)");
+        return NULL;
+    }
+
+    raw_matrix1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.funmatrix");
+    if (raw_matrix1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 1");
+        return NULL;
+    }
+    matrix1 = (FunctionalMatrix*) raw_matrix1;
+
+    raw_matrix2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.funmatrix");
+    if (raw_matrix2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 2");
+        return NULL;
+    }
+    matrix2 = (FunctionalMatrix*) raw_matrix2;
+
+    result = msub(matrix1, matrix2);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_scalar_mul (PyObject *self, PyObject *args)
+{
+    PyObject *capsule, *raw_scalar;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    COMPLEX_TYPE scalar;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule, &raw_scalar, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_mul(funmatrix, scalar, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    if (PyComplex_Check(raw_scalar)) {
+        scalar = complex_init(PyComplex_RealAsDouble(raw_scalar), PyComplex_ImagAsDouble(raw_scalar));
+    }
+    else if(PyFloat_Check(raw_scalar)) {
+        scalar = complex_init(PyFloat_AsDouble(raw_scalar), 0.0);
+    }
+    else if(PyLong_Check(raw_scalar)) {
+        scalar = complex_init((double) PyLong_AsLong(raw_scalar), 0.0);
+    }
+    else {
+        PyErr_SetString(DokiError, "scalar is not a number");
+        return NULL;
+    }
+
+    result = mprod(scalar, matrix);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_scalar_div (PyObject *self, PyObject *args)
+{
+    PyObject *capsule, *raw_scalar;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    COMPLEX_TYPE scalar;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule, &raw_scalar, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_div(funmatrix, scalar, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    if (PyComplex_Check(raw_scalar)) {
+        scalar = complex_init(PyComplex_RealAsDouble(raw_scalar), PyComplex_ImagAsDouble(raw_scalar));
+    }
+    else if(PyFloat_Check(raw_scalar)) {
+        scalar = complex_init(PyFloat_AsDouble(raw_scalar), 0.0);
+    }
+    else if(PyLong_Check(raw_scalar)) {
+        scalar = complex_init((double) PyLong_AsLong(raw_scalar), 0.0);
+    }
+    else {
+        PyErr_SetString(DokiError, "scalar is not a number");
+        return NULL;
+    }
+
+    result = mdiv(scalar, matrix);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_matmul (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_matrix1, *raw_matrix2;
+    FunctionalMatrix *matrix1, *matrix2, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_matmul(funmatrix1, funmatrix2, verbose)");
+        return NULL;
+    }
+
+    raw_matrix1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.funmatrix");
+    if (raw_matrix1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 1");
+        return NULL;
+    }
+    matrix1 = (FunctionalMatrix*) raw_matrix1;
+
+    raw_matrix2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.funmatrix");
+    if (raw_matrix2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 2");
+        return NULL;
+    }
+    matrix2 = (FunctionalMatrix*) raw_matrix2;
+
+    result = matmul(matrix1, matrix2);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_ewmul (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_matrix1, *raw_matrix2;
+    FunctionalMatrix *matrix1, *matrix2, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_ewmul(funmatrix1, funmatrix2, verbose)");
+        return NULL;
+    }
+
+    raw_matrix1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.funmatrix");
+    if (raw_matrix1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 1");
+        return NULL;
+    }
+    matrix1 = (FunctionalMatrix*) raw_matrix1;
+
+    raw_matrix2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.funmatrix");
+    if (raw_matrix2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 2");
+        return NULL;
+    }
+    matrix2 = (FunctionalMatrix*) raw_matrix2;
+
+    result = ewmul(matrix1, matrix2);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_kron (PyObject *self, PyObject *args)
+{
+    PyObject *capsule1, *capsule2;
+    void *raw_matrix1, *raw_matrix2;
+    FunctionalMatrix *matrix1, *matrix2, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_kron(funmatrix1, funmatrix2, verbose)");
+        return NULL;
+    }
+
+    raw_matrix1 = PyCapsule_GetPointer(capsule1, "qsimov.doki.funmatrix");
+    if (raw_matrix1 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 1");
+        return NULL;
+    }
+    matrix1 = (FunctionalMatrix*) raw_matrix1;
+
+    raw_matrix2 = PyCapsule_GetPointer(capsule2, "qsimov.doki.funmatrix");
+    if (raw_matrix2 == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix 2");
+        return NULL;
+    }
+    matrix2 = (FunctionalMatrix*) raw_matrix2;
+
+    result = kron(matrix1, matrix2);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_transpose (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_transpose(funmatrix, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    result = transpose(matrix);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_dagger (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_dagger(funmatrix, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    result = dagger(matrix);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_shape (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_shape(funmatrix, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    return PyTuple_Pack(2, PyLong_FromUnsignedLongLong(rows(matrix)),
+                           PyLong_FromUnsignedLongLong(columns(matrix)));
+}
+
+static PyObject *
+doki_funmatrix_partialtrace (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    unsigned int id;
+    void *raw_matrix;
+    FunctionalMatrix *matrix, *result;
+    unsigned char exit_code;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OIp", &capsule, &id, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_partialtrace(funmatrix, id, verbose)");
+        return NULL;
+    }
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+    result = partial_trace(matrix, id);
+    if (result == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate result");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) result, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_trace (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    void *raw_matrix;
+    FunctionalMatrix *matrix;
+    COMPLEX_TYPE result, aux;
+    NATURAL_TYPE i, min_shape;
+    unsigned char exit_code;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: funmatrix_trace(funmatrix, verbose)");
+        return NULL;
+    }
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+    result = COMPLEX_ZERO;
+    min_shape = matrix->r <= matrix->c ? matrix->r : matrix->c;
+
+    for (i = 0; i < min_shape; i++) {
+        if (!getitem(matrix, i, i, &aux)) {
+            PyErr_SetString(DokiError, "Failed to get matrix element");
+            return NULL;
+        }
+        result = complex_sum(result, aux);
+    }
+
+    return PyComplex_FromDoubles(creal(result), cimag(result));
 }

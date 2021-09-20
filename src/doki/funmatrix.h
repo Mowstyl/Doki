@@ -79,10 +79,6 @@ msub(FunctionalMatrix *a, FunctionalMatrix *b);
 FunctionalMatrix*
 mprod(COMPLEX_TYPE r, FunctionalMatrix *a);
 
-
-FunctionalMatrix*
-mprodaux(REAL_TYPE re, REAL_TYPE im, FunctionalMatrix *a);
-
 /* Scalar division */
 FunctionalMatrix*
 mdiv(COMPLEX_TYPE r, FunctionalMatrix *a);
