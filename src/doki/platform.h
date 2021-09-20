@@ -78,6 +78,13 @@
  *  \return The result of a + b.
  */
 
+/** \fn COMPLEX_TYPE complex_sub(COMPLEX_TYPE a, COMPLEX_TYPE b);
+ *  \brief Calculate a - b, where a and b are complex numbers.
+ *  \param a The first operand.
+ *  \param b The second operand.
+ *  \return The result of a - b.
+ */
+
 /** \fn COMPLEX_TYPE complex_mult(COMPLEX_TYPE a, COMPLEX_TYPE b);
  *  \brief Calculate a * b, where a and b are complex numbers.
  *  \param a The first operand.
@@ -90,6 +97,13 @@
  *  \param a The first operand (complex number).
  *  \param b The second operand (real number).
  *  \return The result of a * r.
+ */
+
+/** \fn COMPLEX_TYPE complex_div_r(COMPLEX_TYPE a, COMPLEX_TYPE b);
+ *  \brief Calculate a / b, where a and b are complex numbers.
+ *  \param a The dividend.
+ *  \param r The divisor.
+ *  \return The result of a / b.
  */
 
 /** \fn COMPLEX_TYPE complex_div_r(COMPLEX_TYPE a, REAL_TYPE r);
@@ -119,8 +133,16 @@
 #define NATURAL_TYPE unsigned long long int
 #define NATURAL_MAX ULLONG_MAX
 #define NATURAL_ONE 1ULL
+#define COMPLEX_ZERO complex_init(0, 0)
+#define COMPLEX_ONE complex_init(1, 0)
 #define CHUNK_MAX ULONG_MAX
 #define REAL_TYPE double
+#define DECIMAL_PLACES 5 // max: 17 (MinGWx64-gcc)
+#define DECIMAL_PLACES_S "5" // same as before, but as a string
+#define NOTATION "g" // f for normal behaviour, g for scientific notation
+#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "l" NOTATION
+#define INTEGER_STRING_FORMAT "%lld"
+#define NATURAL_STRING_FORMAT "%llu"
 
 #ifndef _WIN32
 #define COMPLEX_TYPE double _Complex
@@ -138,10 +160,16 @@ COMPLEX_TYPE
 complex_sum(COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
+complex_sub(COMPLEX_TYPE a, COMPLEX_TYPE b);
+
+COMPLEX_TYPE
 complex_mult(COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
 complex_mult_r(COMPLEX_TYPE a, REAL_TYPE r);
+
+COMPLEX_TYPE
+complex_div(COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
 complex_div_r(COMPLEX_TYPE a, REAL_TYPE r);

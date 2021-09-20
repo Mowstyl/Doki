@@ -44,7 +44,7 @@ def H_e_np(quantity):
 def get_H_e(quantity):
     """Return H_e_np in both sparse and doki formats."""
     h_es = H_e_np(quantity)
-    h_e_doki = [doki.gate(1, h_e.tolist(), False) for h_e in h_es]
+    h_e_doki = [doki.gate_new(1, h_e.tolist(), False) for h_e in h_es]
     h_e_sp = [sparse.csr_matrix(h_e) for h_e in h_es]
     return h_e_doki, h_e_sp
 
@@ -62,7 +62,7 @@ def build_np(gates, ids):
 
 def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol):
     """Test registry after gate application."""
-    r_doki = doki.new(num_qubits, False)
+    r_doki = doki.registry_new(num_qubits, False)
     r_np = gen_reg(num_qubits)
     for i in range(num_qubits):
         if h_e_sp[i] is not None and h_e_doki[i] is not None:
@@ -80,7 +80,7 @@ def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol):
 
 def check_nothing(num_qubits, r_doki, rtol, atol):
     """Test measurement with mask 0 for specified number of qubits."""
-    aux_r_d, m = doki.measure(r_doki, 0, [], False)
+    aux_r_d, m = doki.registry_measure(r_doki, 0, [], False)
     if (not np.allclose(doki_to_np(r_doki, num_qubits),
                         doki_to_np(aux_r_d, num_qubits),
                         rtol=rtol, atol=atol)) \
@@ -113,11 +113,12 @@ def check_everything(num_qubits, r_doki, rtol, atol,
     """Test measurement with max mask for specified number of qubits."""
     # if classic is not None:
     #     print(doki_to_np(r_doki, num_qubits))
-    aux_r_d, m = doki.measure(r_doki, 2**num_qubits - 1,
-                              np.random.rand(num_qubits).tolist(), False)
+    aux_r_d, m = doki.registry_measure(r_doki, 2**num_qubits - 1,
+                                       np.random.rand(num_qubits).tolist(),
+                                       False)
     doki_errored = False
     try:
-        doki.get(aux_r_d, 0, False)
+        doki.registry_get(aux_r_d, 0, False)
     except Exception as e:
         if type(e).__module__ + "." + type(e).__name__ == "qsimov.doki.error":
             doki_errored = True
@@ -126,8 +127,9 @@ def check_everything(num_qubits, r_doki, rtol, atol,
         raise AssertionError("Error measuring all qubits")
     mess = np.zeros((iterations, num_qubits), dtype=int)
     for i in range(iterations):
-        reg, mes = doki.measure(r_doki, 2**num_qubits - 1,
-                                np.random.rand(num_qubits).tolist(), False)
+        reg, mes = doki.registry_measure(r_doki, 2**num_qubits - 1,
+                                         np.random.rand(num_qubits).tolist(),
+                                         False)
         del reg
         for j in range(num_qubits):
             mess[i, j] = int(mes[j])
@@ -159,9 +161,10 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
         # if classic is not None:
         #     print("Doki0:", doki_to_np(r_doki, num_qubits))
         #     print("Mask:", mask)
-        aux_r_d, mes = doki.measure(r_doki, mask,
-                                    np.random.rand(len(not_ids)).tolist(),
-                                    False)
+        aux_r_d, mes = doki.registry_measure(r_doki, mask,
+                                             np.random.rand(len(not_ids))
+                                             .tolist(),
+                                             False)
         # if classic is not None:
         #     print("Doki1:", doki_to_np(aux_r_d, len(yes_ids)))
         #     print("ref:", aux_r_d)
@@ -214,7 +217,7 @@ def check_measure_classic(num_qubits, rtol, atol, iterations=1000):
     """Test measurement with specified number of qubits and X gates."""
     raw_x = [[0, 1], [1, 0]]
     x_sp = sparse.csr_matrix(raw_x)
-    x_d = doki.gate(1, raw_x, False)
+    x_d = doki.gate_new(1, raw_x, False)
     values = np.random.choice(a=[0, 1], size=num_qubits)
     x_d_list = [x_d if value else None for value in values]
     x_sp_list = [x_sp if value else None for value in values]

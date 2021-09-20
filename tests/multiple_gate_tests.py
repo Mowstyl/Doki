@@ -126,7 +126,7 @@ def SWAP_sparse():
 
 def SWAP_doki():
     """Return doki SWAP gate."""
-    return doki.gate(1, SWAP_np().tolist())
+    return doki.gate_new(1, SWAP_np().tolist())
 
 
 def TwoU_np(angle1_1, angle1_2, angle1_3, invert1,
@@ -152,16 +152,16 @@ def multiple_target_tests(nq, rtol, atol, verbose=True):
     invert2 = np.random.choice(a=[False, True])
     numpygate = TwoU_np(*angles1, invert1, *angles2, invert2)
     sparsegate = sparse.csr_matrix(numpygate)
-    dokigate = doki.gate(2, numpygate.tolist(), False)
+    dokigate = doki.gate_new(2, numpygate.tolist(), False)
     r1_np = gen_reg(nq)
-    r1_doki = doki.new(nq, False)
+    r1_doki = doki.registry_new(nq, False)
     for id1 in range(nq):
         for id2 in range(nq):
             if id1 == id2:
                 continue
             r2_np = sparseTwoGate(sparsegate, id1, id2, nq, r1_np)
-            r2_doki = doki.apply(r1_doki, dokigate, [id1, id2],
-                                 None, None, False)
+            r2_doki = doki.registry_apply(r1_doki, dokigate, [id1, id2],
+                                          None, None, False)
             if not np.allclose(doki_to_np(r2_doki, nq), r2_np,
                                rtol=rtol, atol=atol):
                 if verbose:
@@ -188,7 +188,7 @@ def controlled_tests(nq, rtol, atol, verbose=False):
     numpygate = U_sparse(*angles, invert)
     gate = U_doki(*angles, invert)
     r1_np = gen_reg(nq)
-    r1_doki = doki.new(nq, False)
+    r1_doki = doki.registry_new(nq, False)
     # print(nq)
     r2_np, r2_doki = apply_gate(nq, r1_np, r1_doki, numpygate, gate, lastid)
     del r1_np
@@ -205,8 +205,8 @@ def controlled_tests(nq, rtol, atol, verbose=False):
             print("   controls: " + str(control))
             print("   anticontrols: " + str(anticontrol))
         r2_np = applyCACU(numpygate, id, control, anticontrol, nq, r1_np)
-        r2_doki = doki.apply(r1_doki, gate, [int(id)],
-                             set(control), set(anticontrol), False)
+        r2_doki = doki.registry_apply(r1_doki, gate, [int(id)],
+                                      set(control), set(anticontrol), False)
         isControl = not isControl
         lastid = id
         if not np.allclose(doki_to_np(r2_doki, nq), r2_np,

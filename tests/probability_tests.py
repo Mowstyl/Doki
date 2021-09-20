@@ -8,20 +8,20 @@ def Ry_doki(angle):
     """Return a Ry gate."""
     npgate = np.array([[np.cos(angle / 2), -np.sin(angle / 2)],
                        [np.sin(angle / 2),  np.cos(angle / 2)]], dtype=complex)
-    return doki.gate(1, npgate.tolist(), False)
+    return doki.gate_new(1, npgate.tolist(), False)
 
 
 def test_probability(nq, rtol, atol):
     """Test probability method with nq qubits registry."""
     step = 2 * np.pi / nq
     gates = [Ry_doki(step * i) for i in range(nq)]
-    reg = doki.new(nq, False)
+    reg = doki.registry_new(nq, False)
     for i in range(nq):
-        aux = doki.apply(reg, gates[i], [i], None, None, False)
+        aux = doki.registry_apply(reg, gates[i], [i], None, None, False)
         del reg
         reg = aux
     for i in range(nq):
-        odds = doki.prob(reg, i, False)
+        odds = doki.registry_prob(reg, i, False)
         exodds = np.sin((step * i) / 2)**2
         if not np.allclose(odds, exodds, rtol=rtol, atol=atol):
             print(f"Obtained Odds: P(M({i})=1) = {odds}")

@@ -39,7 +39,8 @@ def U_sparse(angle1, angle2, angle3, invert):
 
 def U_doki(angle1, angle2, angle3, invert):
     """Return doki U gate (IBM)."""
-    return doki.gate(1, U_np(angle1, angle2, angle3, invert).tolist(), False)
+    return doki.gate_new(1, U_np(angle1, angle2, angle3, invert).tolist(),
+                         False)
 
 
 def apply_np(nq, r, g, target):
@@ -63,7 +64,8 @@ def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target):
     # print(doki_to_np(r_doki, nq))
     # print(g_doki)
     # print({target})
-    new_r_doki = doki.apply(r_doki, g_doki, [target], None, None, False)
+    new_r_doki = doki.registry_apply(r_doki, g_doki, [target], None, None,
+                                     False)
     return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 
 
@@ -72,7 +74,7 @@ def test_gates_static(num_qubits):
     rtol = 0
     atol = 1e-13
     r2_np = gen_reg(num_qubits)
-    r2_doki = doki.new(num_qubits, False)
+    r2_doki = doki.registry_new(num_qubits, False)
     fails = []
     for i in range(num_qubits):
         r1_np = r2_np

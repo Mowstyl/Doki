@@ -14,6 +14,9 @@ doki_registry_destroy (PyObject *capsule);
 void
 doki_gate_destroy (PyObject *capsule);
 
+void
+doki_funmatrix_destroy (PyObject *capsule);
+
 static PyObject *
 doki_seed_set (PyObject *self, PyObject *args);
 
@@ -21,7 +24,7 @@ static PyObject *
 doki_registry_new (PyObject *self, PyObject *args);
 
 static PyObject *
-doki_registry_gate (PyObject *self, PyObject *args);
+doki_gate_new (PyObject *self, PyObject *args);
 
 static PyObject *
 doki_registry_get (PyObject *self, PyObject *args);
@@ -38,14 +41,28 @@ doki_registry_measure (PyObject *self, PyObject *args);
 static PyObject *
 doki_registry_prob (PyObject *self, PyObject *args);
 
+static PyObject *
+doki_registry_density (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_get (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_funmatrix_partialtrace (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_registry_trace (PyObject *self, PyObject *args);
+
 static PyMethodDef DokiMethods[] = {
-    {"new", doki_registry_new, METH_VARARGS, "Create new registry"},
-    {"gate", doki_registry_gate, METH_VARARGS, "Create new gate"},
-    {"get", doki_registry_get, METH_VARARGS, "Get value from registry"},
-    {"apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
-    {"join", doki_registry_join, METH_VARARGS, "Merges two registries"},
-    {"measure", doki_registry_measure, METH_VARARGS, "Measures and collapses specified qubits"},
-    {"prob", doki_registry_prob, METH_VARARGS, "Get the chances of obtaining 1 when measuring a certain qubit"},
+    {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
+    {"registry_new", doki_registry_new, METH_VARARGS, "Create new registry"},
+    {"registry_get", doki_registry_get, METH_VARARGS, "Get value from registry"},
+    {"registry_apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
+    {"registry_join", doki_registry_join, METH_VARARGS, "Merges two registries"},
+    {"registry_measure", doki_registry_measure, METH_VARARGS, "Measures and collapses specified qubits"},
+    {"registry_prob", doki_registry_prob, METH_VARARGS, "Get the chances of obtaining 1 when measuring a certain qubit"},
+    {"registry_density", doki_registry_density, METH_VARARGS, "Get the density matrix"},
+    {"funmatrix_get", doki_funmatrix_get, METH_VARARGS, "Get a value from a functional matrix"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -119,9 +136,12 @@ doki_registry_destroy (PyObject *capsule)
     struct state_vector *state;
     void *raw_state;
     raw_state = PyCapsule_GetPointer(capsule, "qsimov.doki.state_vector");
-    state = (struct state_vector*) raw_state;
-    state_clear(state);
-    free(state);
+
+    if (raw_state != NULL) {
+        state = (struct state_vector*) raw_state;
+        state_clear(state);
+        free(state);
+    }
 }
 
 void
@@ -132,13 +152,30 @@ doki_gate_destroy (PyObject *capsule)
     NATURAL_TYPE i;
 
     raw_gate = PyCapsule_GetPointer(capsule, "qsimov.doki.gate");
-    gate = (struct qgate*) raw_gate;
 
-    for (i = 0; i < gate->size; i++) {
-        free(gate->matrix[i]);
+    if (raw_gate != NULL) {
+        gate = (struct qgate*) raw_gate;
+
+        for (i = 0; i < gate->size; i++) {
+            free(gate->matrix[i]);
+        }
+        free(gate->matrix);
+        free(gate);
     }
-    free(gate->matrix);
-    free(gate);
+}
+
+void
+doki_funmatrix_destroy (PyObject *capsule)
+{
+    FunctionalMatrix *matrix;
+    void *raw_matrix;
+    NATURAL_TYPE i;
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix != NULL) {
+        matrix = (FunctionalMatrix*) raw_matrix;
+        free(matrix);
+    }
 }
 
 static PyObject *
@@ -190,7 +227,7 @@ doki_registry_new (PyObject *self, PyObject *args)
 }
 
 static PyObject *
-doki_registry_gate (PyObject *self, PyObject *args)
+doki_gate_new (PyObject *self, PyObject *args)
 {
     PyObject *list, *row, *raw_val;
     unsigned int num_qubits;
@@ -705,4 +742,74 @@ doki_registry_prob (PyObject *self, PyObject *args)
         return NULL;
     }
     return PyFloat_FromDouble(odds);
+}
+
+static PyObject *
+doki_registry_density (PyObject *self, PyObject *args)
+{
+    PyObject *state_capsule, *capsule;
+    void *raw_state;
+    FunctionalMatrix *densityMatrix;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &state_capsule, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: density(state, verbose)");
+        return NULL;
+    }
+
+    raw_state = PyCapsule_GetPointer(state_capsule, "qsimov.doki.state_vector");
+    if (raw_state == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to registry");
+        return NULL;
+    }
+
+    densityMatrix = densityMat((struct state_vector*) raw_state);
+    if (densityMatrix == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate density matrix");
+        return NULL;
+    }
+
+    return PyCapsule_New((void*) densityMatrix, "qsimov.doki.funmatrix", &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_get (PyObject *self, PyObject *args)
+{
+    PyObject *result, *capsule;
+    void *raw_matrix;
+    FunctionalMatrix *matrix;
+    NATURAL_TYPE i, j;
+    COMPLEX_TYPE val;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "OKKp", &capsule, &i, &j, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: density(funmatrix, i, j, verbose)");
+        return NULL;
+    }
+
+    raw_matrix = PyCapsule_GetPointer(capsule, "qsimov.doki.funmatrix");
+    if (raw_matrix == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to matrix");
+        return NULL;
+    }
+    matrix = (FunctionalMatrix*) raw_matrix;
+
+    if (i < 0 || j < 0 || i >= matrix->r || j >= matrix->c) {
+        PyErr_SetString(DokiError, "Out of bounds");
+        return NULL;
+    }
+
+    if (!getitem(matrix, i, j, &val)) {
+        PyErr_SetString(DokiError, "Error getting element");
+        return NULL;
+    }
+
+    if (isnan(creal(val)) || isnan(cimag(val))) {
+        PyErr_SetString(DokiError, "Error calculating element");
+        return NULL;
+    }
+
+    return PyComplex_FromDoubles(creal(val), cimag(val));
 }

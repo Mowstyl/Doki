@@ -9,14 +9,14 @@ from reg_creation_tests import doki_to_np
 def phase_doki(angle):
     """Return a gate with no observable changes (hidden phase)."""
     npgate = np.exp(1j * angle) * np.eye(2)
-    return doki.gate(1, npgate.tolist(), False)
+    return doki.gate_new(1, npgate.tolist(), False)
 
 
 def test_canonical_apply(nq, rtol, atol):
     """Test canonical get with nq qubit registries after gate apply."""
     print("\tTesting get after apply")
     gates = [phase_doki(np.pi * (np.random.rand() * 2 - 1)) for i in range(nq)]
-    reg = doki.new(nq, False)
+    reg = doki.registry_new(nq, False)
     npreg = doki_to_np(reg, nq, canonical=False)
     npreg = np.exp(-1j*np.angle(npreg[0, 0])) * npreg
     if not np.allclose(doki_to_np(reg, nq, canonical=True),
@@ -24,7 +24,7 @@ def test_canonical_apply(nq, rtol, atol):
                        rtol=rtol, atol=atol):
         raise AssertionError("Failed canonical get on clean state")
     for i in range(nq):
-        aux = doki.apply(reg, gates[i], [i], None, None, False)
+        aux = doki.registry_apply(reg, gates[i], [i], None, None, False)
         del reg
         reg = aux
         rawnpreg = doki_to_np(reg, nq, canonical=False)
@@ -35,7 +35,7 @@ def test_canonical_apply(nq, rtol, atol):
             raise AssertionError("Failed canonical get after operating")
     print("\tTesting get after measure (apply)")
     for i in range(nq - 1):
-        aux, _ = doki.measure(reg, 1, [np.random.rand()], False)
+        aux, _ = doki.registry_measure(reg, 1, [np.random.rand()], False)
         del reg
         reg = aux
         npreg = doki_to_np(reg, nq - i - 1, canonical=False)
@@ -51,14 +51,14 @@ def test_canonical_join_mes(nq, rtol, atol):
     """Test canonical get with nq qubit registries after join and measure."""
     print("\tTesting get after join")
     gates = [phase_doki(np.pi * (np.random.rand() * 2 - 1)) for i in range(nq)]
-    rawregs = [doki.new(1, False) for i in range(nq)]
-    regs = [doki.apply(rawregs[i], gates[i], [0], None, None, False)
+    rawregs = [doki.registry_new(1, False) for i in range(nq)]
+    regs = [doki.registry_apply(rawregs[i], gates[i], [0], None, None, False)
             for i in range(nq)]
     joined = regs[0]
     for i in range(nq):
         del rawregs[nq - i - 1]
     for i in range(1, nq):
-        aux = doki.join(joined, regs[i], False)
+        aux = doki.registry_join(joined, regs[i], False)
         if i > 1:
             del joined
         joined = aux
@@ -72,7 +72,7 @@ def test_canonical_join_mes(nq, rtol, atol):
         del regs[nq - i - 1]
     print("\tTesting get after measure (join)")
     for i in range(nq - 1):
-        aux, _ = doki.measure(joined, 1, [np.random.rand()], False)
+        aux, _ = doki.registry_measure(joined, 1, [np.random.rand()], False)
         del joined
         joined = aux
         npreg = doki_to_np(joined, nq - i - 1, canonical=False)

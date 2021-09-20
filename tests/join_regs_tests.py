@@ -12,19 +12,20 @@ def test_random_join(nq, rtol, atol):
     gates = [U_doki(*(np.pi * (np.random.random_sample(3) * 2 - 1)),
                     np.random.choice(a=[False, True]))
              for i in range(nq)]
-    regs = [doki.new(1, False) for i in range(nq)]
-    r2s = [doki.apply(regs[i], gates[i], [0], None, None, False)
+    regs = [doki.registry_new(1, False) for i in range(nq)]
+    r2s = [doki.registry_apply(regs[i], gates[i], [0], None, None, False)
            for i in range(nq)]
-    exreg = doki.new(nq, False)
+    exreg = doki.registry_new(nq, False)
     for i in range(nq):
         del regs[nq - i - 1]
-        aux = doki.apply(exreg, gates[i], [nq - i - 1], None, None, False)
+        aux = doki.registry_apply(exreg, gates[i], [nq - i - 1], None, None,
+                                  False)
         del exreg
         exreg = aux
     res = r2s[0]
     first = True
     for reg in r2s[1:]:
-        aux = doki.join(res, reg, False)
+        aux = doki.registry_join(res, reg, False)
         if not first:
             del res
         else:
@@ -38,7 +39,7 @@ def test_random_join(nq, rtol, atol):
     res = r2s[-1]
     first = True
     for reg in r2s[nq-2::-1]:
-        aux = doki.join(reg, res, False)
+        aux = doki.registry_join(reg, res, False)
         if not first:
             del res
         else:

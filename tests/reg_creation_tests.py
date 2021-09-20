@@ -13,13 +13,14 @@ def gen_reg(nq):
 
 def doki_to_np(r_doki, num_qubits, canonical=False):
     """Return numpy array with r_doki's column vector."""
-    return np.transpose(np.array([doki.get(r_doki, i, canonical, False)
+    return np.transpose(np.array([doki.registry_get(r_doki, i, canonical,
+                                                    False)
                                   for i in range(2**num_qubits)], ndmin=2))
 
 
 def check_generation(num_qubits):
     """Check if doki's new and get work for the specified number of qubits."""
-    r_doki = doki.new(num_qubits, False)
+    r_doki = doki.registry_new(num_qubits, False)
     r_numpy = gen_reg(num_qubits)
     return all(doki_to_np(r_doki, num_qubits) == r_numpy)
 

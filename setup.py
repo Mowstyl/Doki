@@ -7,6 +7,7 @@ from setuptools.command.build_ext import build_ext
 ON_WINDOWS = platform.system() == "Windows"
 _comp_args = ["DSHARED=1"]
 sources = ["src/doki/platform.c",
+           "src/doki/funmatrix.c",
            "src/doki/qstate.c",
            "src/doki/arraylist.c",
            "src/doki/qops.c",

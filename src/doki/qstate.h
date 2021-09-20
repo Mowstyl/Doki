@@ -23,30 +23,30 @@
 
 struct array_list
 {
-  /* size of this chunk */
-  NATURAL_TYPE       node_size;
-  /* array of elements in this chunk */
-  COMPLEX_TYPE      *node_elements;
-  /* pointer to next chunk */
-  struct array_list *next;
+    /* size of this chunk */
+    NATURAL_TYPE       node_size;
+    /* array of elements in this chunk */
+    COMPLEX_TYPE      *node_elements;
+    /* pointer to next chunk */
+    struct array_list *next;
 };
 
 struct state_vector
 {
-  /* id of the first element stored in this computation node */
-  NATURAL_TYPE       first_id;
-  /* id of the last element stored in this computation node */
-  NATURAL_TYPE       last_id;
-  /* total (not partial) size of the vector */
-  NATURAL_TYPE       size;
-  /* number of qubits in this quantum system */
-  unsigned int       num_qubits;
-  /* partial vector */
-  struct array_list *vector;
-  /* normalization constant */
-  REAL_TYPE          norm_const;
-  /* e^-(complex argument of the first element)*/
-  COMPLEX_TYPE       fcarg;
+    /* id of the first element stored in this computation node */
+    NATURAL_TYPE       first_id;
+    /* id of the last element stored in this computation node */
+    NATURAL_TYPE       last_id;
+    /* total (not partial) size of the vector */
+    NATURAL_TYPE       size;
+    /* number of qubits in this quantum system */
+    unsigned int       num_qubits;
+    /* partial vector */
+    struct array_list *vector;
+    /* normalization constant */
+    REAL_TYPE          norm_const;
+    /* e^-(complex argument of the first element)*/
+    COMPLEX_TYPE       fcarg;
 };
 
 unsigned char

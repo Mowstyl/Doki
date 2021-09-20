@@ -11,7 +11,8 @@
 
 
 unsigned char
-probability(struct state_vector *state, unsigned int target_id, REAL_TYPE *value) {
+probability(struct state_vector *state, unsigned int target_id, REAL_TYPE *value)
+{
     NATURAL_TYPE i, step, count;
     COMPLEX_TYPE aux;
     _Bool read;
@@ -434,4 +435,47 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
         }
     }
     return aux_code;
+}
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+COMPLEX_TYPE
+_densityFun(NATURAL_TYPE i, NATURAL_TYPE j,
+            #ifndef _MSC_VER
+            NATURAL_TYPE unused1 __attribute__((unused)), NATURAL_TYPE unused2 __attribute__((unused)),
+            #else
+            NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+            #endif
+            void *rawstate)
+{
+    struct state_vector *state = (struct state_vector*) rawstate;
+    COMPLEX_TYPE elem_i,
+                 elem_j,
+                 result;
+    unsigned char error_code;
+
+    error_code = state_get(state, i, &elem_i, 0);
+    error_code |= state_get(state, j, &elem_j, 0);
+
+    if (error_code == 0) {
+        result = complex_mult(elem_i, conj(elem_j));
+    }
+    else {
+        result = complex_init(NAN, NAN);
+    }
+
+    return result;
+}
+
+FunctionalMatrix*
+densityMat(struct state_vector *state)
+{
+    FunctionalMatrix *dm = NULL;
+
+    if (state != NULL) {
+        dm = new_FunctionalMatrix(state->size, state->size, &_densityFun, state);
+    }
+
+    return dm;
 }
