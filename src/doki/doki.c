@@ -459,6 +459,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
         PyErr_SetString(DokiError, "Failed to allocate target array");
         return NULL;
     }
+    controls = NULL;
     if (num_controls > 0) {
         controls = MALLOC_TYPE(num_controls, unsigned int);
         if (controls == NULL) {
@@ -466,6 +467,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
             return NULL;
         }
     }
+    anticontrols = NULL;
     if (num_anticontrols > 0) {
         anticontrols = MALLOC_TYPE(num_anticontrols, unsigned int);
         if (anticontrols == NULL) {

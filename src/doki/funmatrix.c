@@ -39,6 +39,7 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
     COMPLEX_TYPE aux1 = COMPLEX_ZERO,
                  aux2 = COMPLEX_ZERO;
 
+    *sol = complex_init(NAN, NAN);
     if (i < a->r && j < a->c) {
         if (a->transpose) {
             aux = i;
@@ -58,7 +59,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
                     else {
                         printf("Error while operating!\n");
                         result = 0;
-                        sol = NULL;
                     }
                     break;
                 case 1: /* Matrix subtraction */
@@ -68,7 +68,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
                     else {
                         printf("Error while operating!\n");
                         result = 0;
-                        sol = NULL;
                     }
                     break;
                 case 2: /* Matrix multiplication    */
@@ -80,7 +79,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
                         else {
                             printf("Error while operating!\n");
                             result = 0;
-                            sol = NULL;
                             break;
                         }
                     }
@@ -92,7 +90,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
                     else {
                         printf("Error while operating!\n");
                         result = 0;
-                        sol = NULL;
                     }
                     break;
 
@@ -103,14 +100,12 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
                     else {
                         printf("Error while operating!\n");
                         result = 0;
-                        sol = NULL;
                     }
                     break;
 
                 default:
                     printf("Unknown option: %d\n", a->op);
                     result = 0;
-                    sol = NULL;
             }
         }
 
@@ -121,7 +116,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
     else {
         printf("(" NATURAL_STRING_FORMAT ", " NATURAL_STRING_FORMAT ") is out of bounds!\n Matrix dimensions: (" NATURAL_STRING_FORMAT ", " NATURAL_STRING_FORMAT ")\n", i, j, a->r, a->c);
         result = 0;
-        sol = NULL;
     }
 
     if (result) {
