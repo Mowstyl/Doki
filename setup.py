@@ -1,6 +1,9 @@
 """Installation module."""
 
+import platform
+
 from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
 
 headers = ["src/doki/platform.h",
            "src/doki/funmatrix.h",
@@ -17,6 +20,26 @@ sources = ["src/doki/platform.c",
            "src/doki/doki.c"]
 
 
+ON_WINDOWS = platform.system() == "Windows"
+_comp_args = [""]
+
+
+class DokiBuild(build_ext):
+    """Class with build attributes."""
+
+    description = "Build Doki with custom build options"
+
+    def build_extensions(self):
+        """Add compiler specific arguments and prefixes."""
+        compiler = self.compiler.compiler_type
+        openmp_flag = "fopenmp"
+        if ON_WINDOWS and compiler != 'mingw32':
+            openmp_flag = "openmp"
+        prefix = '-' if compiler != 'msvc' else '/'
+        _comp_args[0] = prefix + openmp_flag
+        build_ext.build_extensions(self)
+
+
 def main():
     """Code to be executed on install."""
     setup(
@@ -24,6 +47,7 @@ def main():
         version="1.0.0",
         author="Hernán Indíbil de la Cruz Calvo",
         author_email="HernanIndibil.LaCruz@alu.uclm.es",
+        cmdclass={'build_ext': DokiBuild},
         license="MIT",
         url="https://github.com/Mowstyl/Doki",
         description="Python interface for Doki (QSimov core)",
@@ -47,7 +71,7 @@ def main():
         ],
         keywords="qsimov simulator quantum",
         ext_modules=[Extension('doki', sources=sources,
-                               extra_compile_args=["-openmp"])],
+                               extra_compile_args=_comp_args)],
         data_files=[('headers', headers)],
         python_requires=">=3.6",
     )
