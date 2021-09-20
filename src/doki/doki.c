@@ -18,9 +18,6 @@ void
 doki_funmatrix_destroy (PyObject *capsule);
 
 static PyObject *
-doki_seed_set (PyObject *self, PyObject *args);
-
-static PyObject *
 doki_registry_new (PyObject *self, PyObject *args);
 
 static PyObject *
@@ -299,7 +296,7 @@ doki_gate_new (PyObject *self, PyObject *args)
 
     gate->num_qubits = num_qubits;
     gate->size = NATURAL_ONE << num_qubits;
-    if (PyList_Size(list) != gate->size) {
+    if ((NATURAL_TYPE) PyList_Size(list) != gate->size) {
         PyErr_SetString(DokiError, "Wrong matrix size for specified number of qubits");
         free(gate);
         return NULL;
@@ -314,7 +311,7 @@ doki_gate_new (PyObject *self, PyObject *args)
 
     for (i = 0; i < gate->size; i++) {
         row = PyList_GetItem(list, i);
-        if (!PyList_Check(row) || PyList_Size(row) != gate->size) {
+        if (!PyList_Check(row) || (NATURAL_TYPE) PyList_Size(row) != gate->size) {
             PyErr_SetString(DokiError, "rows must be lists of size 2^num_qubits");
             for (k = 0; k < i; k++) {
                 free(gate->matrix[k]);
@@ -844,6 +841,7 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
         return NULL;
     }
 
+    val = COMPLEX_ZERO;
     if (!getitem(matrix, i, j, &val)) {
         PyErr_SetString(DokiError, "Error getting element");
         return NULL;
@@ -1268,6 +1266,7 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
     result = COMPLEX_ZERO;
     min_shape = matrix->r <= matrix->c ? matrix->r : matrix->c;
 
+    aux = COMPLEX_ZERO;
     for (i = 0; i < min_shape; i++) {
         if (!getitem(matrix, i, i, &aux)) {
             PyErr_SetString(DokiError, "Failed to get matrix element");
