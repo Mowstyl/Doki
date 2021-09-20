@@ -437,11 +437,12 @@ FM_toString(FunctionalMatrix *a)
 
     text = (char*) malloc(MAX_BUF);
 
+    it = COMPLEX_ZERO;
     if (text != NULL) {
         length += _bytes_added(snprintf(text + length, MAX_BUF - length, "["));
         for (i = 0; i < a->r; i++) {
             for (j = 0; j < a->c; j++) {
-                if (getitem(a, i, j, &it)) {
+                if (getitem(a, i, j, &it) && !isnan(creal(it)) && !isnan(cimag(it))) {
                     if (cimag(it) >= 0) {
                         length += _bytes_added(snprintf(text + length, MAX_BUF - length,
                                                         REAL_STRING_FORMAT "+" REAL_STRING_FORMAT "i",

@@ -1197,7 +1197,7 @@ doki_funmatrix_shape (PyObject *self, PyObject *args)
 {
     PyObject *capsule;
     void *raw_matrix;
-    FunctionalMatrix *matrix, *result;
+    FunctionalMatrix *matrix;
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled))
@@ -1224,7 +1224,6 @@ doki_funmatrix_partialtrace (PyObject *self, PyObject *args)
     unsigned int id;
     void *raw_matrix;
     FunctionalMatrix *matrix, *result;
-    unsigned char exit_code;
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OIp", &capsule, &id, &debug_enabled)) {
@@ -1254,7 +1253,6 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
     FunctionalMatrix *matrix;
     COMPLEX_TYPE result, aux;
     NATURAL_TYPE i, min_shape;
-    unsigned char exit_code;
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled)) {

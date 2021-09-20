@@ -138,7 +138,6 @@ state_clear(struct state_vector *state)
 unsigned char
 state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value)
 {
-    REAL_TYPE arg;
     NATURAL_TYPE i, position, chunk_id, partial_id;
     struct array_list *chunk;
 

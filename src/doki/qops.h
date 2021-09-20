@@ -1,6 +1,7 @@
 #ifndef __QOPS_H
 #define __QOPS_H
 
+#include "arraylist.h"
 #include "qstate.h"
 #include "qgate.h"
 #include "funmatrix.h"
