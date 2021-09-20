@@ -147,7 +147,7 @@
 #define NATURAL_ONE 1LL
 #define COMPLEX_ZERO complex_init(0, 0)
 #define COMPLEX_ONE complex_init(1, 0)
-#define CHUNK_MAX ULONG_MAX
+#define CHUNK_MAX LONG_MAX
 #define REAL_TYPE double
 #define DECIMAL_PLACES 5 // max: 17 (MinGWx64-gcc)
 #define DECIMAL_PLACES_S "5" // same as before, but as a string
