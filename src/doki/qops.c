@@ -59,7 +59,7 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
     #pragma omp parallel for reduction (|:exit_code) \
                              default(none) \
                              shared (r, s1, s2) \
-                             private (i, j, o1, o2, aux_code, new_index, errored)
+                             firstprivate (i, j, o1, o2, aux_code, new_index, errored)
     for (i = 0; i < s1->size; i++) {
         if (aux_code != 0) {
             continue;
@@ -313,14 +313,13 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
     *norm_const = 0;
     exit_code = 0;
     count = 0;
-    #pragma omp parallel for reduction (+:count) \
-                             reduction (|:exit_code) \
+    #pragma omp parallel for reduction (|:exit_code) \
                              default(none) \
                              shared (state, not_copy, new_state, \
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
-                                     norm_const) \
-                             private (copy_only, get, i, j)
+                                     norm_const, count) \
+                             firstprivate (copy_only, get, i, j)
     for (i = 0; i < state->size; i++) {
         // If there has been any error in this thread, we skip
         if (exit_code != 0) {
@@ -351,6 +350,7 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
                 // printf("[DEBUG] Failed to get old state value for copy\n");
                 exit_code = 1;
             }
+            #pragma omp atomic
             *norm_const += pow(creal(get), 2) + pow(cimag(get), 2);
             if (state_set(new_state, i, get) > 1) {
                 // printf("[DEBUG] Failed to copy value to new state\n");
@@ -359,11 +359,14 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
             }
         }
         else {
-            exit_code = alist_set(not_copy, count, i);
+            #pragma omp critical (add_to_not_copy)
+            {
+                exit_code = alist_set(not_copy, count, i);
+                count++;
+            }
             if (exit_code > 0) {
                 continue;
             }
-            count++;
         }
     }
 
@@ -383,6 +386,8 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
     unsigned char aux_code;
     unsigned int j, k, row;
     aux_code = 0;
+    reg_index = 0;
+    curr_id = 0;
     // We can calculate each element of the new state separately
     #pragma omp parallel for reduction (|:aux_code) \
                              default(none) \
@@ -391,7 +396,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
                                      norm_const) \
-                             private (curr_id, get, sum, row, reg_index, i, j, k)
+                             firstprivate (curr_id, get, sum, row, reg_index, i, j, k)
     for (i = 0; i < not_copy->size; i++) {
         // If there has been any error in this thread, we skip
         if (aux_code != 0) {
@@ -418,19 +423,22 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                     reg_index &= ~(NATURAL_ONE << targets[k]);
                 }
             }
-            aux_code = state_get(state, reg_index, &get, 0);
+            // printf("[DEBUG: %i] state[%lld] * gate[%u][%u] +\n", omp_get_thread_num(), reg_index, row, j);
+            aux_code |= state_get(state, reg_index, &get, 0);
             if (aux_code == 2) {
                 // printf("[DEBUG] Failed to get old state value\n");
-                aux_code = 1;
+                aux_code |= 1;
                 break;
             }
             sum = complex_sum(sum, complex_mult(get, gate->matrix[row][j]));
         }
         // norm_const += cabs(sum) * cabs(sum);
+        #pragma omp atomic
         *norm_const += pow(creal(sum), 2) + pow(cimag(sum), 2);
+        // printf("[DEBUG: %i] -> new_state[%lld]\n", omp_get_thread_num(), curr_id);
         if (state_set(new_state, curr_id, sum) > 1) {
             // printf("[DEBUG] Failed to set new state value\n");
-            aux_code = 1;
+            aux_code |= 1;
             continue;
         }
     }

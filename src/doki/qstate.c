@@ -142,11 +142,14 @@ state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value)
     struct array_list *chunk;
 
     if (index >= state->size) {
+        // printf("[DEBUG] qstate.c:state_set state->size: %llu\n", state->size);
+        // printf("[DEBUG] qstate.c:state_set index: %llu\n", index);
         return 2;  // 1 means index out of bounds
     }
 
     if (index < state->first_id || index > state->last_id) {
         /* Not in this computation node */
+        // printf("[DEBUG] qstate.c:state_set Shouldn't happen\n");
         return 1;
     }
 
@@ -177,6 +180,7 @@ state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target, 
 
     if (index < state->first_id || index > state->last_id) {
         /* Not in this computation node */
+        // printf("[DEBUG] qstate.c:state_get Shouldn't happen\n");
         return 1;
     }
 
