@@ -40,3 +40,8 @@ jobs:
         python tests/join_regs_tests.py 14
         python tests/canonical_form_tests.py 1 14
         python tests/probability_tests.py 1 14
+    - uses: actions/upload-artifact@v2
+      with:
+        name: doki-artifact
+        path: dist/ # or path/to/artifact
+        if-no-files-found: error
