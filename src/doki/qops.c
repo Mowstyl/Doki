@@ -59,7 +59,8 @@ join(struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
     #pragma omp parallel for reduction (|:exit_code) \
                              default(none) \
                              shared (r, s1, s2) \
-                             firstprivate (i, j, o1, o2, aux_code, new_index, errored)
+                             firstprivate (aux_code, errored) \
+                             private (i, j, o1, o2, new_index)
     for (i = 0; i < s1->size; i++) {
         if (aux_code != 0) {
             continue;
@@ -319,7 +320,7 @@ copy_and_index(struct state_vector *state, struct state_vector *new_state,
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
                                      norm_const, count) \
-                             firstprivate (copy_only, get, i, j)
+                             private (copy_only, get, i, j)
     for (i = 0; i < state->size; i++) {
         // If there has been any error in this thread, we skip
         if (exit_code != 0) {
@@ -396,7 +397,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
                                      norm_const) \
-                             firstprivate (curr_id, get, sum, row, reg_index, i, j, k)
+                             private (curr_id, get, sum, row, reg_index, i, j, k)
     for (i = 0; i < not_copy->size; i++) {
         // If there has been any error in this thread, we skip
         if (aux_code != 0) {
