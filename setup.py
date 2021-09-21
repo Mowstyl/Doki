@@ -71,7 +71,8 @@ def main():
         ],
         keywords="qsimov simulator quantum",
         ext_modules=[Extension('doki', sources=sources,
-                               extra_compile_args=_comp_args)],
+                               extra_compile_args=_comp_args,
+                               extra_link_args=_comp_args)],
         data_files=[('headers', headers)],
         python_requires=">=3.6",
     )
