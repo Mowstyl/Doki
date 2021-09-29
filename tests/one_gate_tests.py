@@ -1,6 +1,7 @@
 """One qubit gate tests."""
 import doki
 import numpy as np
+import os
 import scipy.sparse as sparse
 import sys
 
@@ -59,17 +60,17 @@ def apply_np(nq, r, g, target):
         return r[:, :]
 
 
-def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target):
+def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target, num_threads):
     """Apply gate to registry (both numpy+sparse and doki)."""
     # print(doki_to_np(r_doki, nq))
     # print(g_doki)
     # print({target})
     new_r_doki = doki.registry_apply(r_doki, g_doki, [target], None, None,
-                                     False)
+                                     num_threads, False)
     return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 
 
-def test_gates_static(num_qubits):
+def test_gates_static(num_qubits, num_threads):
     """Apply a random 1-qubit gate to each qubit and compare results."""
     rtol = 0
     atol = 1e-13
@@ -83,7 +84,8 @@ def test_gates_static(num_qubits):
         invert = np.random.choice(a=[False, True])
         r2_np, r2_doki = apply_gate(num_qubits, r1_np, r1_doki,
                                     U_sparse(*angles, invert),
-                                    U_doki(*angles, invert), i)
+                                    U_doki(*angles, invert), i,
+                                    num_threads)
         if not np.allclose(doki_to_np(r2_doki, num_qubits), r2_np,
                            rtol=rtol, atol=atol):
             '''
@@ -105,9 +107,9 @@ def test_gates_static(num_qubits):
     return fails
 
 
-def one_gate_range(min_qubits, max_qubits):
+def one_gate_range(min_qubits, max_qubits, num_threads):
     """Execute test_gates_static once for each posible number in range."""
-    res = [(nq, test_gates_static(nq))
+    res = [(nq, test_gates_static(nq, num_threads))
            for nq in range(min_qubits, max_qubits + 1)]
     return [elem for elem in res if elem[1]]  # List of failed tests
 
@@ -116,23 +118,38 @@ def main():
     """Execute all tests."""
     argv = sys.argv[1:]
     seed = None
-    if len(argv) == 3:
-        seed = int(argv[2])
+    num_threads = None
     if 2 <= len(argv) <= 3:
         min_qubits = int(argv[0])
         max_qubits = int(argv[1])
+        if len(argv) >= 3:
+            num_threads = int(argv[2])
+        if len(argv) >= 4:
+            seed = int(argv[3])
         if (min_qubits < 1):
             raise ValueError("minimum number of qubits must be at least 1")
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
+        if num_threads is not None and num_threads < -1:
+            raise ValueError("num_threads must be at least 1 " +
+                             "(0 -> ENV VAR, -1 -> OMP default)")
+        elif num_threads == 0:
+            num_threads = None
         print("One qubit gate application tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)
         np.random.seed(seed)
-        res = one_gate_range(min_qubits, max_qubits)
+        if num_threads is None:
+            num_threads = os.getenv('OMP_NUM_THREADS')
+            if num_threads is None:
+                num_threads = -1
+            elif num_threads <= 0:
+                raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
+            print("\tNumber of threads:", num_threads)
+        res = one_gate_range(min_qubits, max_qubits, num_threads)
         if any(res):
             raise AssertionError("Failed tests: " + str(res))
         else:
@@ -140,7 +157,9 @@ def main():
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +
-                         " <maximum number of qubits> <seed (optional)>")
+                         " <maximum number of qubits>" +
+                         " <number of threads (optional)>" +
+                         " <seed (optional)>")
 
 
 if __name__ == "__main__":

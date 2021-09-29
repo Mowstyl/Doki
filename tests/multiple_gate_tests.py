@@ -1,6 +1,7 @@
 """Multiple qubit gate tests."""
 import doki
 import numpy as np
+import os
 import scipy.sparse as sparse
 import sys
 
@@ -144,7 +145,7 @@ def TwoU_np(angle1_1, angle1_2, angle1_3, invert1,
     return g
 
 
-def multiple_target_tests(nq, rtol, atol, verbose=True):
+def multiple_target_tests(nq, rtol, atol, num_threads, verbose=True):
     """Test multiple qubit gate."""
     angles1 = np.random.rand(3)
     angles2 = np.random.rand(3)
@@ -161,7 +162,7 @@ def multiple_target_tests(nq, rtol, atol, verbose=True):
                 continue
             r2_np = sparseTwoGate(sparsegate, id1, id2, nq, r1_np)
             r2_doki = doki.registry_apply(r1_doki, dokigate, [id1, id2],
-                                          None, None, False)
+                                          None, None, num_threads, False)
             if not np.allclose(doki_to_np(r2_doki, nq), r2_np,
                                rtol=rtol, atol=atol):
                 if verbose:
@@ -173,7 +174,7 @@ def multiple_target_tests(nq, rtol, atol, verbose=True):
             del r2_doki
 
 
-def controlled_tests(nq, rtol, atol, verbose=False):
+def controlled_tests(nq, rtol, atol, num_threads, verbose=False):
     """Test application of controlled gates."""
     isControl = np.random.choice(a=[False, True])
     qubitIds = [int(id) for id in np.random.permutation(nq)]
@@ -190,7 +191,8 @@ def controlled_tests(nq, rtol, atol, verbose=False):
     r1_np = gen_reg(nq)
     r1_doki = doki.registry_new(nq, False)
     # print(nq)
-    r2_np, r2_doki = apply_gate(nq, r1_np, r1_doki, numpygate, gate, lastid)
+    r2_np, r2_doki = apply_gate(nq, r1_np, r1_doki, numpygate, gate, lastid,
+                                num_threads)
     del r1_np
     del r1_doki
     for id in qubitIds[1:]:
@@ -206,7 +208,8 @@ def controlled_tests(nq, rtol, atol, verbose=False):
             print("   anticontrols: " + str(anticontrol))
         r2_np = applyCACU(numpygate, id, control, anticontrol, nq, r1_np)
         r2_doki = doki.registry_apply(r1_doki, gate, [int(id)],
-                                      set(control), set(anticontrol), False)
+                                      set(control), set(anticontrol),
+                                      num_threads, False)
         isControl = not isControl
         lastid = id
         if not np.allclose(doki_to_np(r2_doki, nq), r2_np,
@@ -227,35 +230,52 @@ def main():
     """Execute all tests."""
     argv = sys.argv[1:]
     seed = None
-    if len(argv) == 3:
-        seed = int(argv[2])
-    if 2 <= len(argv) <= 3:
+    num_threads = None
+    if 2 <= len(argv) <= 4:
         min_qubits = int(argv[0])
         max_qubits = int(argv[1])
+        if len(argv) >= 3:
+            num_threads = int(argv[2])
+        if len(argv) >= 4:
+            seed = int(argv[3])
         if (min_qubits < 2):
             raise ValueError("minimum number of qubits must be at least 2")
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
+        if num_threads is not None and num_threads < -1:
+            raise ValueError("num_threads must be at least 1 " +
+                             "(0 -> ENV VAR, -1 -> OMP default)")
+        elif num_threads == 0:
+            num_threads = None
         print("Multiple qubit gate application tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)
         np.random.seed(seed)
+        if num_threads is None:
+            num_threads = os.getenv('OMP_NUM_THREADS')
+            if num_threads is None:
+                num_threads = -1
+            elif num_threads <= 0:
+                raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
+            print("\tNumber of threads:", num_threads)
         rtol = 0
         atol = 1e-13
         print("\tControlled gate application tests...")
         for nq in range(min_qubits, max_qubits + 1):
-            controlled_tests(nq, rtol, atol)
+            controlled_tests(nq, rtol, atol, num_threads)
         print("\tMultiple target gate application tests...")
         for nq in range(min_qubits, max_qubits + 1):
-            multiple_target_tests(nq, rtol, atol)
+            multiple_target_tests(nq, rtol, atol, num_threads)
         print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 2)>" +
-                         " <maximum number of qubits> <seed (optional)>")
+                         " <maximum number of qubits>" +
+                         " <number of threads (optional)>" +
+                         " <seed (optional)>")
 
 
 if __name__ == "__main__":

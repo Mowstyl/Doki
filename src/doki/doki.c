@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <omp.h>
 #include "platform.h"
 #include "qstate.h"
 #include "qgate.h"
@@ -19,6 +20,9 @@ doki_funmatrix_destroy (PyObject *capsule);
 
 static PyObject *
 doki_registry_new (PyObject *self, PyObject *args);
+
+static PyObject *
+doki_registry_del (PyObject *self, PyObject *args);
 
 static PyObject *
 doki_gate_new (PyObject *self, PyObject *args);
@@ -83,6 +87,7 @@ doki_funmatrix_trace (PyObject *self, PyObject *args);
 static PyMethodDef DokiMethods[] = {
     {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
     {"registry_new", doki_registry_new, METH_VARARGS, "Create new registry"},
+    {"registry_del", doki_registry_del, METH_VARARGS, "Destroy a registry"},
     {"registry_get", doki_registry_get, METH_VARARGS, "Get value from registry"},
     {"registry_apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
     {"registry_join", doki_registry_join, METH_VARARGS, "Merges two registries"},
@@ -265,6 +270,22 @@ doki_registry_new (PyObject *self, PyObject *args)
 }
 
 static PyObject *
+doki_registry_del (PyObject *self, PyObject *args)
+{
+    PyObject *capsule;
+    unsigned char exit_code;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_del(registry, verbose)");
+        return NULL;
+    }
+
+    doki_registry_destroy(capsule);
+    return NULL;
+}
+
+static PyObject *
 doki_gate_new (PyObject *self, PyObject *args)
 {
     PyObject *list, *row, *raw_val;
@@ -400,11 +421,16 @@ doki_registry_apply (PyObject *self, PyObject *args)
     unsigned char exit_code;
     unsigned int num_targets, num_controls, num_anticontrols, i;
     unsigned int *targets, *controls, *anticontrols;
-    int debug_enabled;
+    int num_threads, debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OOOOOp", &state_capsule, &gate_capsule,
-                          &target_list, &control_set, &acontrol_set, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: registry_apply(registry, gate, target_list, control_set, anticontrol_set, verbose)");
+    if (!PyArg_ParseTuple(args, "OOOOOip", &state_capsule, &gate_capsule,
+                          &target_list, &control_set, &acontrol_set, &num_threads, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_apply(registry, gate, target_list, control_set, anticontrol_set, num_threads, verbose)");
+        return NULL;
+    }
+
+    if (num_threads <= 0 && num_threads != -1) {
+        PyErr_SetString(DokiError, "num_threads must be at least 1 (or -1 to let OpenMP choose)");
         return NULL;
     }
 
@@ -519,6 +545,9 @@ doki_registry_apply (PyObject *self, PyObject *args)
             PyErr_SetString(DokiError, "Failed to allocate new state structure");
             return NULL;
         }
+        if (num_threads != -1) {
+            omp_set_num_threads(num_threads);
+        }
         // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls, num_anticontrols);
         exit_code = apply_gate(state, gate, targets, num_targets, controls,
                                num_controls, anticontrols, num_anticontrols,
@@ -569,10 +598,15 @@ doki_registry_join (PyObject *self, PyObject *args)
     void *raw_state1, *raw_state2;
     struct state_vector *state1, *state2, *result;
     unsigned char exit_code;
-    int debug_enabled;
+    int num_threads, debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "OOp", &capsule1, &capsule2, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: registry_join(most_registry, least_registry, verbose)");
+    if (!PyArg_ParseTuple(args, "OOip", &capsule1, &capsule2, &num_threads, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_join(most_registry, least_registry, num_threads, verbose)");
+        return NULL;
+    }
+
+    if (num_threads <= 0 && num_threads != -1) {
+        PyErr_SetString(DokiError, "num_threads must be at least 1 (or -1 to let OpenMP choose)");
         return NULL;
     }
 
@@ -594,6 +628,9 @@ doki_registry_join (PyObject *self, PyObject *args)
         PyErr_SetString(DokiError, "Failed to allocate new state structure");
         return NULL;
     }
+    if (num_threads != -1) {
+        omp_set_num_threads(num_threads);
+    }
     exit_code = join(result, state1, state2);
 
     if (exit_code == 1) {
@@ -612,7 +649,7 @@ doki_registry_join (PyObject *self, PyObject *args)
         PyErr_SetString(DokiError, "Failed to get/set a value");
     }
     else if (exit_code != 0) {
-        PyErr_SetString(DokiError, "Unknown error when applying gate");
+        PyErr_SetString(DokiError, "Unknown error when joining states");
     }
 
     if (exit_code != 0) {

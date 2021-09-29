@@ -2,6 +2,7 @@
 import doki
 import gc
 import numpy as np
+import os
 import scipy.sparse as sparse
 import sys
 
@@ -60,14 +61,15 @@ def build_np(gates, ids):
     return r_np
 
 
-def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol):
+def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol, num_threads):
     """Test registry after gate application."""
     r_doki = doki.registry_new(num_qubits, False)
     r_np = gen_reg(num_qubits)
     for i in range(num_qubits):
         if h_e_sp[i] is not None and h_e_doki[i] is not None:
             aux_r_n, aux_r_d = apply_gate(num_qubits, r_np, r_doki,
-                                          h_e_sp[i], h_e_doki[i], i)
+                                          h_e_sp[i], h_e_doki[i], i,
+                                          num_threads)
             del r_doki
             del r_np
             r_doki = aux_r_d
@@ -197,11 +199,13 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
             raise AssertionError("Value differs from expected")
 
 
-def check_measure_superposition(num_qubits, rtol, atol, iterations=1000,
+def check_measure_superposition(num_qubits, rtol, atol, num_threads,
+                                iterations=1000,
                                 bounds=[.3, .4, .4, .45, .55, .6, .6, .7]):
     """Test measurement with specified number of qubits and Hadamards."""
     h_e_doki, h_e_sp = get_H_e(num_qubits)
-    r_doki, r_np = check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol)
+    r_doki, r_np = check_build(num_qubits, h_e_doki, h_e_sp,
+                               rtol, atol, num_threads)
     print("\t\tTesting mask = 0")
     check_nothing(num_qubits, r_doki, rtol, atol)
     print("\t\tTesting mask = max")
@@ -213,7 +217,8 @@ def check_measure_superposition(num_qubits, rtol, atol, iterations=1000,
     del r_np
 
 
-def check_measure_classic(num_qubits, rtol, atol, iterations=1000):
+def check_measure_classic(num_qubits, rtol, atol, num_threads,
+                          iterations=1000):
     """Test measurement with specified number of qubits and X gates."""
     raw_x = [[0, 1], [1, 0]]
     x_sp = sparse.csr_matrix(raw_x)
@@ -222,7 +227,8 @@ def check_measure_classic(num_qubits, rtol, atol, iterations=1000):
     x_d_list = [x_d if value else None for value in values]
     x_sp_list = [x_sp if value else None for value in values]
     # print(values)
-    r_doki, r_np = check_build(num_qubits, x_d_list, x_sp_list, rtol, atol)
+    r_doki, r_np = check_build(num_qubits, x_d_list, x_sp_list,
+                               rtol, atol, num_threads)
     print("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol,
                      iterations, None, values[::-1])
@@ -238,14 +244,17 @@ def main():
     """Execute all tests."""
     argv = sys.argv[1:]
     seed = None
+    num_threads = None
     iterations = 1000
-    if len(argv) >= 3:
-        iterations = int(argv[2])
-    if len(argv) == 4:
-        seed = int(argv[3])
     if 2 <= len(argv) <= 4:
         min_qubits = int(argv[0])
         max_qubits = int(argv[1])
+        if len(argv) >= 3:
+            iterations = int(argv[2])
+        if len(argv) >= 4:
+            num_threads = int(argv[3])
+        if len(argv) >= 5:
+            seed = int(argv[4])
         if (min_qubits < 1):
             raise ValueError("minimum number of qubits must be at least 1")
         elif (min_qubits > max_qubits):
@@ -254,27 +263,41 @@ def main():
             raise ValueError("Iterations must be at least 1")
         if seed is not None and (seed < 0 or seed >= 2**32):
             raise ValueError("seed must be in [0, 2^32 - 1]")
+        if num_threads is not None and num_threads < -1:
+            raise ValueError("num_threads must be at least 1 " +
+                             "(0 -> ENV VAR, -1 -> OMP default)")
+        elif num_threads == 0:
+            num_threads = None
         print("Measurement tests...")
         if seed is None:
             seed = np.random.randint(np.iinfo(np.int32).max)
             print("\tSeed:", seed)
         np.random.seed(seed)
+        if num_threads is None:
+            num_threads = os.getenv('OMP_NUM_THREADS')
+            if num_threads is None:
+                num_threads = -1
+            elif num_threads <= 0:
+                raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
+            print("\tNumber of threads:", num_threads)
         rtol = 0
         atol = 1e-13
         print("\tSuperposition tests...")
         for nq in range(min_qubits, max_qubits + 1):
-            check_measure_superposition(nq, rtol, atol, iterations)
+            check_measure_superposition(nq, rtol, atol,
+                                        num_threads, iterations)
         gc.collect()
         print("\tClassic tests...")
         for nq in range(min_qubits, max_qubits + 1):
-            check_measure_classic(nq, rtol, atol, iterations)
+            check_measure_classic(nq, rtol, atol, num_threads, iterations)
         gc.collect()
         print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +
                          " <maximum number of qubits>" +
-                         " <iterations=1000> <seed (optional)>")
+                         " <iterations=1000> <number of threads (optional)>" +
+                         " <seed (optional)>")
 
 
 if __name__ == "__main__":
