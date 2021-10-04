@@ -119,6 +119,33 @@ state_init(struct state_vector *state, unsigned int num_qubits, int init)
 }
 
 
+unsigned char
+state_clone(struct state_vector *dest, struct state_vector *source)
+{
+    NATURAL_TYPE i;
+    COMPLEX_TYPE aux;
+    unsigned char aux_code, exit_code;
+    exit_code = state_init(dest, source->num_qubits, 0);
+    if (exit_code > 0) {
+        return exit_code;
+    }
+    aux_code = 0;
+    #pragma omp parallel for reduction (|:exit_code) \
+                             default(none) \
+                             shared (source, dest) \
+                             firstprivate (aux_code) \
+                             private (i, aux)
+    for (i = 0; i < source->size; i++) {
+        aux_code = state_get(source, i, &aux, 0);
+        aux_code |= state_set(dest, i, aux);
+        exit_code |= aux_code;
+    }
+    if (exit_code > 0) {
+        return exit_code + 4;
+    }
+}
+
+
 void
 state_clear(struct state_vector *state)
 {

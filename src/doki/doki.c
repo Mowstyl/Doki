@@ -22,6 +22,9 @@ static PyObject *
 doki_registry_new (PyObject *self, PyObject *args);
 
 static PyObject *
+doki_registry_clone (PyObject *self, PyObject *args);
+
+static PyObject *
 doki_registry_del (PyObject *self, PyObject *args);
 
 static PyObject *
@@ -87,6 +90,7 @@ doki_funmatrix_trace (PyObject *self, PyObject *args);
 static PyMethodDef DokiMethods[] = {
     {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
     {"registry_new", doki_registry_new, METH_VARARGS, "Create new registry"},
+    {"registry_clone", doki_registry_clone, METH_VARARGS, "Clone a registry"},
     {"registry_del", doki_registry_del, METH_VARARGS, "Destroy a registry"},
     {"registry_get", doki_registry_get, METH_VARARGS, "Get value from registry"},
     {"registry_apply", doki_registry_apply, METH_VARARGS, "Apply a gate"},
@@ -229,8 +233,7 @@ doki_registry_new (PyObject *self, PyObject *args)
     struct state_vector *state;
     int debug_enabled;
 
-    if (!PyArg_ParseTuple(args, "Ip", &num_qubits, &debug_enabled))
-    {
+    if (!PyArg_ParseTuple(args, "Ip", &num_qubits, &debug_enabled)) {
         PyErr_SetString(DokiError, "Syntax: registry_new(num_qubits, verbose)");
         return NULL;
     }
@@ -270,10 +273,79 @@ doki_registry_new (PyObject *self, PyObject *args)
 }
 
 static PyObject *
+doki_registry_clone (PyObject *self, PyObject *args)
+{
+    PyObject *source_capsule;
+    unsigned char result;
+    void *raw_source;
+    struct state_vector *source, *dest;
+    int num_threads, debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Oip", &source_capsule,
+                          &num_threads, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_clone(registry, num_threads, verbose)");
+        return NULL;
+    }
+
+    if (num_threads <= 0 && num_threads != -1) {
+        PyErr_SetString(DokiError, "num_threads must be at least 1 (or -1 to let OpenMP choose)");
+        return NULL;
+    }
+
+    raw_source = PyCapsule_GetPointer(source_capsule, "qsimov.doki.state_vector");
+    if (raw_source == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to source registry");
+        return NULL;
+    }
+    source = (struct state_vector*) raw_source;
+
+    dest = MALLOC_TYPE(1, struct state_vector);
+    if (dest == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate new state structure");
+        return NULL;
+    }
+
+    if (num_threads != -1) {
+        omp_set_num_threads(num_threads);
+    }
+
+    result = state_clone(dest, source);
+    if (result == 1) {
+        PyErr_SetString(DokiError, "Failed to initialize state chunk");
+        return NULL;
+    }
+    else if (result == 2) {
+        PyErr_SetString(DokiError, "Failed to allocate state chunk");
+        return NULL;
+    }
+    else if (result == 3) {
+        PyErr_SetString(DokiError, "Failed to set first value to 1");
+        return NULL;
+    }
+    else if (result == 4) {
+        PyErr_SetString(DokiError, "Failed to allocate state vector structure");
+        return NULL;
+    }
+    else if (result == 5) {
+        PyErr_SetString(DokiError, "Other location on get/set");
+        return NULL;
+    }
+    else if (result == 6) {
+        PyErr_SetString(DokiError, "Out of bounds on get/set");
+        return NULL;
+    }
+    else if (result != 0) {
+        PyErr_SetString(DokiError, "Unknown error when creating state");
+        return NULL;
+    }
+    return PyCapsule_New((void*) dest, "qsimov.doki.state_vector",
+                         &doki_registry_destroy);
+}
+
+static PyObject *
 doki_registry_del (PyObject *self, PyObject *args)
 {
     PyObject *capsule;
-    unsigned char exit_code;
     int debug_enabled;
 
     if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled)) {
@@ -282,7 +354,8 @@ doki_registry_del (PyObject *self, PyObject *args)
     }
 
     doki_registry_destroy(capsule);
-    return NULL;
+    PyCapsule_SetDestructor(capsule, NULL);
+    return Py_None;
 }
 
 static PyObject *

@@ -61,6 +61,9 @@ list_chunk(struct array_list *this, int init);
 unsigned char
 state_init(struct state_vector *state, unsigned int num_qubits, int init);
 
+unsigned char
+state_clone(struct state_vector *dest, struct state_vector *source);
+
 void
 state_clear(struct state_vector *state);
 
