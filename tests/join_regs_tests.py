@@ -1,5 +1,5 @@
 """Join registry tests."""
-import doki
+import doki as doki
 import numpy as np
 import os
 import sys

@@ -21,56 +21,48 @@
 
 #include "platform.h"
 
-struct array_list
-{
-    /* size of this chunk */
-    NATURAL_TYPE       node_size;
-    /* array of elements in this chunk */
-    COMPLEX_TYPE      *node_elements;
-    /* pointer to next chunk */
-    struct array_list *next;
-};
-
 struct state_vector
 {
-    /* id of the first element stored in this computation node */
-    NATURAL_TYPE       first_id;
-    /* id of the last element stored in this computation node */
-    NATURAL_TYPE       last_id;
-    /* total (not partial) size of the vector */
-    NATURAL_TYPE       size;
+    /* total size of the vector */
+    NATURAL_TYPE   size;
+    /* number of chunks */
+    size_t         num_chunks;
     /* number of qubits in this quantum system */
-    unsigned int       num_qubits;
+    unsigned int   num_qubits;
     /* partial vector */
-    struct array_list *vector;
+    COMPLEX_TYPE **vector;
     /* normalization constant */
-    REAL_TYPE          norm_const;
-    /* e^-(complex argument of the first element)*/
-    COMPLEX_TYPE       fcarg;
+    REAL_TYPE      norm_const;
+    /* first complex argument */
+    REAL_TYPE      fcarg;
 };
 
+/** \fn unsigned char state_init(struct state_vector *this, unsigned int num_qubits, int init);
+ *  \brief Initialize a state vector structure.
+ *  \param this Pointer to an already allocated state_vector structure.
+ *  \param num_qubits The number of qubits represented by this state (a maximum of MAX_NUM_QUBITS).
+ *  \param init Whether to initialize to {1, 0, ..., 0} or not.
+ *  \return 0 if ok, 1 if failed to allocate vector, 2 if failed to allocate any chunk, 3 if num_qubits > MAX_NUM_QUBITS.
+ */
 unsigned char
-list_new(struct array_list *this, NATURAL_TYPE size, int init);
+state_init(struct state_vector *this, unsigned int num_qubits, int init);
 
-void
-list_clear(struct array_list *this);
-
-unsigned char
-list_chunk(struct array_list *this, int init);
-
-unsigned char
-state_init(struct state_vector *state, unsigned int num_qubits, int init);
-
+/** \fn unsigned char state_clone(struct state_vector *dest, struct state_vector *source);
+ *  \brief Clone a state vector structure.
+ *  \param dest Pointer to an already allocated state_vector structure i which the copy will be stored.
+ *  \param source Pointer to the state_vector structure that has to be cloned.
+ *  \return 0 if ok, 1 if failed to allocate dest vector, 2 if failed to allocate any chunk.
+ */
 unsigned char
 state_clone(struct state_vector *dest, struct state_vector *source);
 
 void
-state_clear(struct state_vector *state);
+state_clear(struct state_vector *this);
 
-unsigned char
-state_set(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE value);
+void
+state_set(struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
 
-unsigned char
-state_get(struct state_vector *state, NATURAL_TYPE index, COMPLEX_TYPE *target, _Bool canonical);
+COMPLEX_TYPE
+state_get(struct state_vector *this, NATURAL_TYPE i);
 
 #endif

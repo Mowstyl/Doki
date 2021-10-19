@@ -1,5 +1,5 @@
 """Registry initialization tests."""
-import doki
+import doki as doki
 import numpy as np
 import sys
 

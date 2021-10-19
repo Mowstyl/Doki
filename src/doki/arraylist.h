@@ -21,36 +21,15 @@
 
 #include "platform.h"
 
-struct node_e
-{
-  /* size of this chunk */
-  NATURAL_TYPE    node_size;
-  /* array of elements in this chunk */
-  NATURAL_TYPE   *node_elements;
-  /* pointer to next chunk */
-  struct node_e  *next;
-};
-
 struct array_list_e
 {
-  /* id of the first element stored in this computation node */
-  NATURAL_TYPE    first_id;
-  /* id of the last element stored in this computation node */
-  NATURAL_TYPE    last_id;
   /* total (not partial) size of the vector */
-  NATURAL_TYPE    size;
-  /* partial vector */
-  struct node_e  *vector;
+  NATURAL_TYPE   size;
+  /* number of chunks */
+  size_t         num_chunks;
+  /* vector */
+  NATURAL_TYPE **vector;
 };
-
-unsigned char
-node_new(struct node_e *this, NATURAL_TYPE size);
-
-void
-node_clear(struct node_e *this);
-
-unsigned char
-node_chunk(struct node_e *this);
 
 unsigned char
 alist_init(struct array_list_e *this, NATURAL_TYPE size);
@@ -58,10 +37,10 @@ alist_init(struct array_list_e *this, NATURAL_TYPE size);
 void
 alist_clear(struct array_list_e *this);
 
-unsigned char
-alist_set(struct array_list_e *this, NATURAL_TYPE index, NATURAL_TYPE value);
+void
+alist_set(struct array_list_e *this, NATURAL_TYPE i, NATURAL_TYPE value);
 
-unsigned char
-alist_get(struct array_list_e *this, NATURAL_TYPE index, NATURAL_TYPE *target);
+NATURAL_TYPE
+alist_get(struct array_list_e *this, NATURAL_TYPE i);
 
 #endif
