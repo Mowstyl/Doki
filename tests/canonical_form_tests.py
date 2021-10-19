@@ -1,5 +1,5 @@
 """Get canonical state tests."""
-import doki
+import doki as doki
 import numpy as np
 import os
 import sys
@@ -37,7 +37,8 @@ def test_canonical_apply(nq, rtol, atol, num_threads):
             raise AssertionError("Failed canonical get after operating")
     print("\tTesting get after measure (apply)")
     for i in range(nq - 1):
-        aux, _ = doki.registry_measure(reg, 1, [np.random.rand()], False)
+        aux, _ = doki.registry_measure(reg, 1, [np.random.rand()],
+                                       num_threads, False)
         del reg
         reg = aux
         npreg = doki_to_np(reg, nq - i - 1, canonical=False)
@@ -75,7 +76,8 @@ def test_canonical_join_mes(nq, rtol, atol, num_threads):
         del regs[nq - i - 1]
     print("\tTesting get after measure (join)")
     for i in range(nq - 1):
-        aux, _ = doki.registry_measure(joined, 1, [np.random.rand()], False)
+        aux, _ = doki.registry_measure(joined, 1, [np.random.rand()],
+                                       num_threads, False)
         del joined
         joined = aux
         npreg = doki_to_np(joined, nq - i - 1, canonical=False)

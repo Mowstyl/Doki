@@ -1,5 +1,5 @@
 """Measurement tests."""
-import doki
+import doki as doki
 import gc
 import numpy as np
 import os
@@ -80,9 +80,9 @@ def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol, num_threads):
     return r_doki, r_np
 
 
-def check_nothing(num_qubits, r_doki, rtol, atol):
+def check_nothing(num_qubits, r_doki, rtol, atol, num_threads):
     """Test measurement with mask 0 for specified number of qubits."""
-    aux_r_d, m = doki.registry_measure(r_doki, 0, [], False)
+    aux_r_d, m = doki.registry_measure(r_doki, 0, [], num_threads, False)
     if (not np.allclose(doki_to_np(r_doki, num_qubits),
                         doki_to_np(aux_r_d, num_qubits),
                         rtol=rtol, atol=atol)) \
@@ -111,13 +111,13 @@ def check_statistics(mess, iterations, bounds):
 
 
 def check_everything(num_qubits, r_doki, rtol, atol,
-                     iterations, bounds, classic=None):
+                     iterations, bounds, num_threads, classic=None):
     """Test measurement with max mask for specified number of qubits."""
     # if classic is not None:
     #     print(doki_to_np(r_doki, num_qubits))
     aux_r_d, m = doki.registry_measure(r_doki, 2**num_qubits - 1,
                                        np.random.rand(num_qubits).tolist(),
-                                       False)
+                                       num_threads, False)
     doki_errored = False
     try:
         doki.registry_get(aux_r_d, 0, False)
@@ -131,7 +131,7 @@ def check_everything(num_qubits, r_doki, rtol, atol,
     for i in range(iterations):
         reg, mes = doki.registry_measure(r_doki, 2**num_qubits - 1,
                                          np.random.rand(num_qubits).tolist(),
-                                         False)
+                                         num_threads, False)
         del reg
         for j in range(num_qubits):
             mess[i, j] = int(mes[j])
@@ -149,7 +149,7 @@ def check_everything(num_qubits, r_doki, rtol, atol,
 
 
 def check_half(num_qubits, gates, r_doki, rtol, atol,
-               iterations, bounds, classic=None):
+               iterations, bounds, num_threads, classic=None):
     """Test measuring half qubits."""
     ids = [i for i in range(num_qubits)]
     mess = np.zeros((iterations, len(ids)//2), dtype=int)
@@ -166,7 +166,7 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
         aux_r_d, mes = doki.registry_measure(r_doki, mask,
                                              np.random.rand(len(not_ids))
                                              .tolist(),
-                                             False)
+                                             num_threads, False)
         # if classic is not None:
         #     print("Doki1:", doki_to_np(aux_r_d, len(yes_ids)))
         #     print("ref:", aux_r_d)
@@ -207,12 +207,14 @@ def check_measure_superposition(num_qubits, rtol, atol, num_threads,
     r_doki, r_np = check_build(num_qubits, h_e_doki, h_e_sp,
                                rtol, atol, num_threads)
     print("\t\tTesting mask = 0")
-    check_nothing(num_qubits, r_doki, rtol, atol)
-    print("\t\tTesting mask = max")
-    check_everything(num_qubits, r_doki, rtol, atol, iterations, bounds)
+    check_nothing(num_qubits, r_doki, rtol, atol, num_threads)
     if (num_qubits > 1):
         print("\t\tTesting mask = half")
-        check_half(num_qubits, h_e_sp, r_doki, rtol, atol, iterations, bounds)
+        check_half(num_qubits, h_e_sp, r_doki, rtol, atol, iterations, bounds,
+                   num_threads)
+    print("\t\tTesting mask = max")
+    check_everything(num_qubits, r_doki, rtol, atol, iterations, bounds,
+                     num_threads)
     del r_doki
     del r_np
 
@@ -231,11 +233,11 @@ def check_measure_classic(num_qubits, rtol, atol, num_threads,
                                rtol, atol, num_threads)
     print("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol,
-                     iterations, None, values[::-1])
+                     iterations, None, num_threads, values[::-1])
     if (num_qubits > 1):
         print("\t\tTesting mask = half")
         check_half(num_qubits, x_sp_list, r_doki, rtol, atol,
-                   iterations, None, values[::-1])
+                   iterations, None, num_threads, values[::-1])
     del r_doki
     del r_np
 

@@ -1,5 +1,5 @@
 """One qubit gate tests."""
-import doki
+import doki as doki
 import numpy as np
 import os
 import scipy.sparse as sparse
@@ -76,7 +76,6 @@ def test_gates_static(num_qubits, num_threads):
     atol = 1e-13
     r2_np = gen_reg(num_qubits)
     r2_doki = doki.registry_new(num_qubits, False)
-    fails = []
     for i in range(num_qubits):
         r1_np = r2_np
         r1_doki = r2_doki
@@ -99,19 +98,15 @@ def test_gates_static(num_qubits, num_threads):
             print("comp:", np.allclose(doki_to_np(r2_doki, num_qubits), r2_np,
                                        rtol=rtol, atol=atol))
             '''
-            fails.append((angles, invert, i))
+            raise AssertionError("Error applying gate")
         del r1_np
         del r1_doki
-    if len(fails) == 0:
-        return None
-    return fails
 
 
 def one_gate_range(min_qubits, max_qubits, num_threads):
     """Execute test_gates_static once for each posible number in range."""
-    res = [(nq, test_gates_static(nq, num_threads))
-           for nq in range(min_qubits, max_qubits + 1)]
-    return [elem for elem in res if elem[1]]  # List of failed tests
+    for nq in range(min_qubits, max_qubits + 1):
+        test_gates_static(nq, num_threads)
 
 
 def main():
@@ -149,11 +144,8 @@ def main():
             elif num_threads <= 0:
                 raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
             print("\tNumber of threads:", num_threads)
-        res = one_gate_range(min_qubits, max_qubits, num_threads)
-        if any(res):
-            raise AssertionError("Failed tests: " + str(res))
-        else:
-            print("\tPEACE AND TRANQUILITY")
+        one_gate_range(min_qubits, max_qubits, num_threads)
+        print("\tPEACE AND TRANQUILITY")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

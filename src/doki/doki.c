@@ -249,7 +249,7 @@ doki_registry_new (PyObject *self, PyObject *args)
     }
     result = state_init(state, num_qubits, 1);
     if (result == 1) {
-        PyErr_SetString(DokiError, "Failed to initialize state chunk");
+        PyErr_SetString(DokiError, "Failed to allocate state vector");
         return NULL;
     }
     else if (result == 2) {
@@ -257,11 +257,7 @@ doki_registry_new (PyObject *self, PyObject *args)
         return NULL;
     }
     else if (result == 3) {
-        PyErr_SetString(DokiError, "Failed to set first value to 1");
-        return NULL;
-    }
-    else if (result == 4) {
-        PyErr_SetString(DokiError, "Failed to allocate state vector structure");
+        PyErr_SetString(DokiError, "Number of qubits exceeds maximum");
         return NULL;
     }
     else if (result != 0) {
@@ -311,31 +307,15 @@ doki_registry_clone (PyObject *self, PyObject *args)
 
     result = state_clone(dest, source);
     if (result == 1) {
-        PyErr_SetString(DokiError, "Failed to initialize state chunk");
+        PyErr_SetString(DokiError, "Failed to allocate state vector");
         return NULL;
     }
     else if (result == 2) {
         PyErr_SetString(DokiError, "Failed to allocate state chunk");
         return NULL;
     }
-    else if (result == 3) {
-        PyErr_SetString(DokiError, "Failed to set first value to 1");
-        return NULL;
-    }
-    else if (result == 4) {
-        PyErr_SetString(DokiError, "Failed to allocate state vector structure");
-        return NULL;
-    }
-    else if (result == 5) {
-        PyErr_SetString(DokiError, "Other location on get/set");
-        return NULL;
-    }
-    else if (result == 6) {
-        PyErr_SetString(DokiError, "Out of bounds on get/set");
-        return NULL;
-    }
     else if (result != 0) {
-        PyErr_SetString(DokiError, "Unknown error when creating state");
+        PyErr_SetString(DokiError, "Unknown error when cloning state");
         return NULL;
     }
     return PyCapsule_New((void*) dest, "qsimov.doki.state_vector",
@@ -449,8 +429,8 @@ doki_registry_get (PyObject *self, PyObject *args)
     void *raw_state;
     struct state_vector *state;
     NATURAL_TYPE id;
-    COMPLEX_TYPE val;
-    unsigned char exit_code;
+    COMPLEX_TYPE val, aux;
+    REAL_TYPE phase;
     int canonical, debug_enabled;
 
     if (!PyArg_ParseTuple(args, "OKpp", &capsule, &id, &canonical, &debug_enabled)) {
@@ -464,21 +444,18 @@ doki_registry_get (PyObject *self, PyObject *args)
         return NULL;
     }
     state = (struct state_vector*) raw_state;
-    exit_code = state_get(state, id, &val, canonical);
-    if (exit_code == 1) {
-        PyErr_SetString(DokiError, "Not here");
-        return NULL;
-    }
-    else if (exit_code == 2) {
-        PyErr_SetString(DokiError, "Out of bounds");
-        return NULL;
-    }
+    val = state_get(state, id);
     if (debug_enabled) {
-        printf("[DEBUG] raw = %lf + i%lf\n", creal(state->vector->node_elements[id]), cimag(state->vector->node_elements[id]));
+        printf("[DEBUG] raw = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(state->vector[id/COMPLEX_ARRAY_SIZE][id%COMPLEX_ARRAY_SIZE]));
         printf("[DEBUG] normconst = %lf\n", state->norm_const);
-        printf("[DEBUG] res = %lf + i%lf\n", creal(val), cimag(val));
+        printf("[DEBUG] res = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(val));
     }
-    result = PyComplex_FromDoubles(creal(val), cimag(val));
+    if (canonical) {
+        phase = get_global_phase(state);
+        aux = complex_init(COS(phase), -SIN(phase));
+        val = complex_mult(val, aux);
+    }
+    result = PyComplex_FromDoubles(RE(val), IM(val));
 
     return result;
 }
@@ -705,27 +682,26 @@ doki_registry_join (PyObject *self, PyObject *args)
         omp_set_num_threads(num_threads);
     }
     exit_code = join(result, state1, state2);
-
-    if (exit_code == 1) {
-        PyErr_SetString(DokiError, "Failed to initialize new state chunk");
-    }
-    else if (exit_code == 2) {
-        PyErr_SetString(DokiError, "Failed to allocate new state chunk");
-    }
-    else if (exit_code == 3) {
-        PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
-    }
-    else if (exit_code == 4) {
-        PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
-    }
-    else if (exit_code == 5) {
-        PyErr_SetString(DokiError, "Failed to get/set a value");
-    }
-    else if (exit_code != 0) {
-        PyErr_SetString(DokiError, "Unknown error when joining states");
-    }
-
     if (exit_code != 0) {
+        switch (exit_code) {
+            case 1:
+                PyErr_SetString(DokiError, "Failed to initialize new state chunk");
+                break;
+            case 2:
+                PyErr_SetString(DokiError, "Failed to allocate new state chunk");
+                break;
+            case 3:
+                PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
+                break;
+            case 4:
+                PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
+                break;
+            case 5:
+                PyErr_SetString(DokiError, "Failed to get/set a value");
+                break;
+            default:
+                PyErr_SetString(DokiError, "Unknown error when joining states");
+        }
         return NULL;
     }
 
@@ -745,10 +721,15 @@ doki_registry_measure (PyObject *self, PyObject *args)
     unsigned int i, curr_id, initial_num_qubits, measured_qty;
     _Bool measure_id, measured_val;
     unsigned char exit_code;
-    int debug_enabled;
+    int debug_enabled, num_threads;
 
-    if (!PyArg_ParseTuple(args, "OKOp", &capsule, &mask, &roll_list, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: registry_measure(registry, mask, roll_list, verbose)");
+    if (!PyArg_ParseTuple(args, "OKOip", &capsule, &mask, &roll_list, &num_threads, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_measure(registry, mask, roll_list, num_threads, verbose)");
+        return NULL;
+    }
+
+    if (num_threads <= 0 && num_threads != -1) {
+        PyErr_SetString(DokiError, "num_threads must be at least 1 (or -1 to let OpenMP choose)");
         return NULL;
     }
 
@@ -765,40 +746,77 @@ doki_registry_measure (PyObject *self, PyObject *args)
     initial_num_qubits = state->num_qubits;
     result = PyList_New(initial_num_qubits);
 
-    exit_code = 0;
-    aux = state;
-    new_state = state;
+    new_state = MALLOC_TYPE(1, struct state_vector);
+    if (new_state == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate new state structure");
+        return NULL;
+    }
+
+    if (num_threads != -1) {
+        omp_set_num_threads(num_threads);
+    }
+    exit_code = state_clone(new_state, state);
+    if (exit_code == 1) {
+        PyErr_SetString(DokiError, "Failed to allocate state vector");
+        return NULL;
+    }
+    else if (exit_code == 2) {
+        PyErr_SetString(DokiError, "Failed to allocate state chunk");
+        return NULL;
+    }
+    else if (exit_code == 3) {
+        if (debug_enabled) {
+            printf("[DEBUG] %u", state->num_qubits);
+        }
+        PyErr_SetString(DokiError, "Wrong number of qubits");
+        return NULL;
+    }
+    else if (exit_code != 0) {
+        PyErr_SetString(DokiError, "Unknown error when cloning state");
+        return NULL;
+    }
+
     measured_qty = 0;
     roll_id = 0;
+    aux = NULL;
     for (i = 0; i < initial_num_qubits; i++) {
-        if (exit_code != 0) {
-            break;
-        }
         curr_id = initial_num_qubits - i - 1;
         measure_id = mask & (NATURAL_ONE << curr_id);
         py_measured_val = Py_None;
         if (measure_id) {
-            if (aux == NULL || aux->num_qubits == 0) {
-                if (aux != NULL && aux != state) {
-                    state_clear(aux);
-                    free(aux);
+            if (new_state == NULL || new_state->num_qubits == 0) {
+                if (new_state != NULL) {
+                    state_clear(new_state);
+                    free(new_state);
                 }
                 PyErr_SetString(DokiError, "Could not measure non_existant qubits");
                 return NULL;
             }
             roll = PyFloat_AsDouble(PyList_GetItem(roll_list, roll_id));
             if (roll < 0 || roll >= 1) {
+                state_clear(new_state);
+                free(new_state);
                 PyErr_SetString(DokiError, "roll not in interval [0, 1)!");
                 return NULL;
             }
             roll_id++;
-            new_state = MALLOC_TYPE(1, struct state_vector);
-            if (new_state == NULL) {
-                PyErr_SetString(DokiError, "Failed to allocate new state structure");
+            aux = MALLOC_TYPE(1, struct state_vector);
+            if (aux == NULL) {
+                state_clear(new_state);
+                free(new_state);
+                PyErr_SetString(DokiError, "Failed to allocate aux state structure");
                 return NULL;
             }
-            exit_code = measure(aux, &measured_val, curr_id, new_state, roll);
-            if (new_state->num_qubits > 0 && new_state->norm_const == 0.0) {
+            exit_code = measure(new_state, &measured_val, curr_id, aux, roll);
+            if (exit_code != 0) {
+                state_clear(aux);
+                free(aux);
+                aux = NULL;
+                break;
+            }
+            if (aux->num_qubits > 0 && aux->norm_const == 0.0) {
+                state_clear(aux);
+                free(aux);
                 state_clear(new_state);
                 free(new_state);
                 PyErr_SetString(DokiError, "New normalization constant is 0. Please report this error with the steps to reproduce it.");
@@ -806,57 +824,40 @@ doki_registry_measure (PyObject *self, PyObject *args)
             }
             measured_qty++;
             py_measured_val = measured_val ? Py_True : Py_False;
-            if (aux != state) {
-                state_clear(aux);
-                free(aux);
-            }
-            aux = new_state;
+            state_clear(new_state);
+            free(new_state);
+            new_state = aux;
+            aux = NULL;
         }
         PyList_SET_ITEM(result, i, py_measured_val);
     }
     if (exit_code != 0) {
+        if (new_state != NULL) {
+            state_clear(new_state);
+            free(new_state);
+        }
         switch (exit_code) {
             case 1:
-                PyErr_SetString(DokiError, "Not on this computation node");
+                PyErr_SetString(DokiError, "Failed to allocate state vector");
                 break;
             case 2:
-                PyErr_SetString(DokiError, "Tried to access element out of bounds");
-                break;
-            case 3:
-                PyErr_SetString(DokiError, "Failed to initialize new state chunk");
-                break;
-            case 4:
-                PyErr_SetString(DokiError, "Failed to allocate new state chunk");
-                break;
-            case 5:
-                PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
-                break;
-            case 6:
-                PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
-                break;
-            case 7:
-                PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to allocate new state structure");
-                break;
-            case 8:
-                PyErr_SetString(DokiError, "Failed to get/set a value while collapsing");
+                PyErr_SetString(DokiError, "Failed to allocate state chunk");
                 break;
             default:
-                PyErr_SetString(DokiError, "Unknown error!");
+                PyErr_SetString(DokiError, "Unknown error while collapsing state");
         }
         return NULL;
     }
 
     if (state->num_qubits - measured_qty > 0) {
-        // printf("[DEBUG] %lf + i%lf\n", creal(new_state->vector->node_elements[0]), cimag(new_state->vector->node_elements[0]));
         new_capsule = PyCapsule_New((void*) new_state, "qsimov.doki.state_vector",
                                     &doki_registry_destroy);
     }
     else {
-        // printf("[DEBUG] ALPHA\n");
-        state_clear(new_state);
-        // printf("[DEBUG] BETA\n");
-        free(new_state);
-        // printf("[DEBUG] GAMMA\n");
+        if (new_state != NULL) {
+            state_clear(new_state);
+            free(new_state);
+        }
         new_capsule = Py_None;
     }
     return PyTuple_Pack(2, new_capsule, result);
@@ -870,11 +871,15 @@ doki_registry_prob (PyObject *self, PyObject *args)
     struct state_vector *state;
     unsigned int id;
     REAL_TYPE odds;
-    unsigned char exit_code;
-    int debug_enabled;
+    int debug_enabled, num_threads;
 
-    if (!PyArg_ParseTuple(args, "OIp", &capsule, &id, &debug_enabled)) {
-        PyErr_SetString(DokiError, "Syntax: registry_prob(registry, qubit_id, verbose)");
+    if (!PyArg_ParseTuple(args, "OIip", &capsule, &id, &num_threads, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_prob(registry, qubit_id, num_threads, verbose)");
+        return NULL;
+    }
+
+    if (num_threads <= 0 && num_threads != -1) {
+        PyErr_SetString(DokiError, "num_threads must be at least 1 (or -1 to let OpenMP choose)");
         return NULL;
     }
 
@@ -884,14 +889,11 @@ doki_registry_prob (PyObject *self, PyObject *args)
         return NULL;
     }
     state = (struct state_vector*) raw_state;
-    exit_code = probability(state, id, &odds);
-    if (exit_code != 0) {
-        if (exit_code == 2) {
-            PyErr_SetString(DokiError, "Tried to access element out of bounds");
-        }
-        return NULL;
+
+    if (num_threads != -1) {
+        omp_set_num_threads(num_threads);
     }
-    return PyFloat_FromDouble(odds);
+    return PyFloat_FromDouble(probability(state, id));
 }
 
 static PyObject *
@@ -957,12 +959,12 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (isnan(creal(val)) || isnan(cimag(val))) {
+    if (isnan(RE(val)) || isnan(IM(val))) {
         PyErr_SetString(DokiError, "Error calculating element");
         return NULL;
     }
 
-    return PyComplex_FromDoubles(creal(val), cimag(val));
+    return PyComplex_FromDoubles(RE(val), IM(val));
 }
 
 static PyObject *
@@ -1385,5 +1387,5 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
         result = complex_sum(result, aux);
     }
 
-    return PyComplex_FromDoubles(creal(result), cimag(result));
+    return PyComplex_FromDoubles(RE(result), IM(result));
 }

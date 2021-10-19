@@ -1,5 +1,5 @@
 """Multiple qubit gate tests."""
-import doki
+import doki as doki
 import numpy as np
 import os
 import scipy.sparse as sparse
@@ -215,7 +215,7 @@ def controlled_tests(nq, rtol, atol, num_threads, verbose=False):
         if not np.allclose(doki_to_np(r2_doki, nq), r2_np,
                            rtol=rtol, atol=atol):
             if verbose:
-                print("\t\tGate: U(" + angles + ")" + invstr +
+                print("\t\tGate: U(" + str(angles) + ")" + invstr +
                       " to qubit " + str(lastid))
                 print(r2_np)
                 print(doki_to_np(r2_doki, nq))

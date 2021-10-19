@@ -151,5 +151,6 @@ dkms.conf
 ######################### cosas mias
 .apuntes/
 old/
+dist_*/
 *.old
 olddoki/

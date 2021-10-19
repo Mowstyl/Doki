@@ -1,8 +1,10 @@
 """Probability tests."""
-import doki
+import doki as doki
 import numpy as np
 import os
 import sys
+
+from reg_creation_tests import doki_to_np
 
 
 def Ry_doki(angle):
@@ -20,15 +22,20 @@ def test_probability(nq, rtol, atol, num_threads):
     for i in range(nq):
         aux = doki.registry_apply(reg, gates[i], [i], None, None,
                                   num_threads, False)
-        del reg
+        doki.registry_del(reg, False)
         reg = aux
     for i in range(nq):
-        odds = doki.registry_prob(reg, i, False)
+        np_old = doki_to_np(reg, nq)
+        odds = doki.registry_prob(reg, i, num_threads, False)
         exodds = np.sin((step * i) / 2)**2
         if not np.allclose(odds, exodds, rtol=rtol, atol=atol):
             print(f"Obtained Odds: P(M({i})=1) = {odds}")
             print(f"Expected Odds: P(M({i})=1) = {exodds}")
-            raise AssertionError("Failed canonical get on measured state")
+            np_reg = doki_to_np(reg, nq)
+            print("r_doki:", np_reg)
+            print("equals old:", np.all(np_reg == np_old))
+            print("sum:", np.sum([np.abs(j)**2 for j in np_reg]))
+            raise AssertionError("Failed probability check")
     del reg
 
 
