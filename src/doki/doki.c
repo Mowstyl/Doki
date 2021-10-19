@@ -870,7 +870,6 @@ doki_registry_prob (PyObject *self, PyObject *args)
     void *raw_state;
     struct state_vector *state;
     unsigned int id;
-    REAL_TYPE odds;
     int debug_enabled, num_threads;
 
     if (!PyArg_ParseTuple(args, "OIip", &capsule, &id, &num_threads, &debug_enabled)) {

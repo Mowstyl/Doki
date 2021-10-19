@@ -87,13 +87,10 @@ unsigned char
 measure(struct state_vector *state, _Bool *result, unsigned int target,
         struct state_vector *new_state, REAL_TYPE roll)
 {
-    NATURAL_TYPE i, count, step;
+    NATURAL_TYPE i;
     REAL_TYPE sum;
-    unsigned char toggle, exit_code;
+    unsigned char exit_code;
 
-    toggle = 0;
-    count = 0;
-    step = NATURAL_ONE << target;
     sum = probability(state, target);
     *result = sum > roll;
     exit_code = collapse(state, target, *result, new_state);
@@ -288,7 +285,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                 REAL_TYPE *norm_const)
 {
     NATURAL_TYPE i, reg_index, curr_id;
-    COMPLEX_TYPE sum, get;
+    COMPLEX_TYPE sum;
     REAL_TYPE aux_const;
     unsigned char aux_code;
     unsigned int j, k, row;
@@ -304,7 +301,7 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
                                      norm_const) \
-                             private (curr_id, get, sum, row, reg_index, i, j, k)
+                             private (curr_id, sum, row, reg_index, i, j, k)
     for (i = 0; i < not_copy->size; i++) {
         // If there has been any error in this thread, we skip
         curr_id = alist_get(not_copy, i);
@@ -359,7 +356,7 @@ _densityFun(NATURAL_TYPE i, NATURAL_TYPE j,
     elem_j = state_get(state, j);
     result = complex_mult(elem_i, conj(elem_j));
 
-    return complex_mult(elem_i, conj(elem_j));
+    return result;
 }
 
 FunctionalMatrix*
