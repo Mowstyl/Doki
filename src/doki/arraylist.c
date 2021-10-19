@@ -6,6 +6,8 @@ unsigned char
 alist_init(struct array_list_e *this, NATURAL_TYPE size)
 {
     size_t i, offset, errored_chunk;
+    _Bool errored;
+
     this->size = size;
     this->num_chunks = this->size / NATURAL_ARRAY_SIZE;
     offset = this->size % NATURAL_ARRAY_SIZE;
@@ -19,21 +21,23 @@ alist_init(struct array_list_e *this, NATURAL_TYPE size)
     if (this->vector == NULL) {
         return 1;
     }
-    errored_chunk = -1;
+    errored = 0;
     for (i = 0; i < this->num_chunks - 1; i++) {
         this->vector[i] = MALLOC_TYPE(NATURAL_ARRAY_SIZE, NATURAL_TYPE);
         if (this->vector[i] == NULL) {
+            errored = 1;
             errored_chunk = i;
             break;
         }
     }
-    if (errored_chunk == -1) {
+    if (!errored) {
         this->vector[this->num_chunks-1] = MALLOC_TYPE(offset, NATURAL_TYPE);
         if (this->vector[this->num_chunks-1] == NULL) {
+            errored = 1;
             errored_chunk = this->num_chunks-1;
         }
     }
-    if (errored_chunk > -1) {
+    if (errored) {
         for (i = 0; i < errored_chunk; i++) {
             free(this->vector[i]);
         }

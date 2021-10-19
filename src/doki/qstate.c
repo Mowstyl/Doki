@@ -6,6 +6,7 @@ unsigned char
 state_init(struct state_vector *this, unsigned int num_qubits, int init)
 {
     size_t i, offset, errored_chunk;
+    _Bool errored;
 
     if (num_qubits > MAX_NUM_QUBITS) {
         return 3;
@@ -26,7 +27,7 @@ state_init(struct state_vector *this, unsigned int num_qubits, int init)
     if (this->vector == NULL) {
         return 1;
     }
-    errored_chunk = -1;
+    errored = 0;
     for (i = 0; i < this->num_chunks - 1; i++) {
         if (init) {
             this->vector[i] = CALLOC_TYPE(COMPLEX_ARRAY_SIZE, COMPLEX_TYPE);
@@ -36,10 +37,11 @@ state_init(struct state_vector *this, unsigned int num_qubits, int init)
         }
         if (this->vector[i] == NULL) {
             errored_chunk = i;
+            errored = 1;
             break;
         }
     }
-    if (errored_chunk == -1) {
+    if (!errored) {
         if (init) {
             this->vector[this->num_chunks-1] = CALLOC_TYPE(offset, COMPLEX_TYPE);
         }
@@ -47,10 +49,11 @@ state_init(struct state_vector *this, unsigned int num_qubits, int init)
             this->vector[this->num_chunks-1] = MALLOC_TYPE(offset, COMPLEX_TYPE);
         }
         if (this->vector[this->num_chunks-1] == NULL) {
+            errored = 1;
             errored_chunk = this->num_chunks-1;
         }
     }
-    if (errored_chunk > -1) {
+    if (errored) {
         for (i = 0; i < errored_chunk; i++) {
             free(this->vector[i]);
         }
