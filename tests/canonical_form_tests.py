@@ -1,5 +1,5 @@
 """Get canonical state tests."""
-import doki as doki
+import doki_gpu as doki
 import numpy as np
 import os
 import sys
