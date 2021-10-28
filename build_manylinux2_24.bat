@@ -28,6 +28,8 @@ docker exec manylinux_2_24 /bin/bash -c "python3.8 -m pip install --user /doki/d
 docker exec manylinux_2_24 /bin/bash -c "python3.9 -m pip install --user /doki/dist/doki_Mowstyl*cp39*manylinux_2_24*.whl"
 ::docker exec manylinux_2_24 /bin/bash -c "python3.10 -m pip install --user /doki/dist/doki_Mowstyl*cp310*manylinux_2_24*.whl"
 
+pause
+
 :: Install dependencies for tests
 docker exec manylinux_2_24 /bin/bash -c "python3.6 -m pip install --user numpy scipy"
 docker exec manylinux_2_24 /bin/bash -c "python3.7 -m pip install --user numpy scipy"
