@@ -17,18 +17,22 @@ get_global_phase(struct state_vector *state)
     REAL_TYPE phase;
     COMPLEX_TYPE val;
 
-    if (state->fcarg != -10.0) {
+    if (state->fcarg_init) {
         return state->fcarg;
     }
 
     phase = 0.0;
     for (i = 0; i < state->size; i++) {
         val = state_get(state, i);
-        if (RE(val) != 0. && IM(val) != 0.) {
-            phase = ARG(val);
+        if (RE(val) != 0. || IM(val) != 0.) {
+            if (IM(val) != 0.) {
+                phase = ARG(val);
+            }
+            break;
         }
     }
     state->fcarg = phase;
+    state->fcarg_init = 1;
 
     return phase;
 }

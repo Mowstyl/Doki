@@ -31,6 +31,9 @@ static PyObject *
 doki_gate_new (PyObject *self, PyObject *args);
 
 static PyObject *
+doki_gate_get (PyObject *self, PyObject *args);
+
+static PyObject *
 doki_registry_get (PyObject *self, PyObject *args);
 
 static PyObject *
@@ -89,6 +92,7 @@ doki_funmatrix_trace (PyObject *self, PyObject *args);
 
 static PyMethodDef DokiMethods[] = {
     {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
+    {"gate_get", doki_gate_get, METH_VARARGS, "Get matrix associated to gate"},
     {"registry_new", doki_registry_new, METH_VARARGS, "Create new registry"},
     {"registry_clone", doki_registry_clone, METH_VARARGS, "Clone a registry"},
     {"registry_del", doki_registry_del, METH_VARARGS, "Destroy a registry"},
@@ -422,6 +426,42 @@ doki_gate_new (PyObject *self, PyObject *args)
     return PyCapsule_New((void*) gate, "qsimov.doki.gate", &doki_gate_destroy);
 }
 
+
+static PyObject *
+doki_gate_get (PyObject *self, PyObject *args)
+{
+    PyObject *capsule, *result, *aux;
+    COMPLEX_TYPE val;
+    NATURAL_TYPE i, j;
+    void *raw_gate;
+    struct qgate *gate;
+    int debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "Op", &capsule, &debug_enabled))
+    {
+        PyErr_SetString(DokiError, "Syntax: gate_get(gate, verbose)");
+        return NULL;
+    }
+
+    raw_gate = PyCapsule_GetPointer(capsule, "qsimov.doki.gate");
+    if (raw_gate == NULL) {
+        PyErr_SetString(DokiError, "NULL pointer to gate");
+        return NULL;
+    }
+    gate = (struct qgate*) raw_gate;
+    result = PyList_New(gate->size);
+    for (i = 0; i < gate->size; i++) {
+        aux = PyList_New(gate->size);
+        for (j = 0; j < gate->size; j++) {
+            val = gate->matrix[i][j];
+            PyList_SET_ITEM(aux, j, PyComplex_FromDoubles(RE(val), IM(val)));
+        }
+        PyList_SET_ITEM(result, i, aux);
+    }
+
+    return result;
+}
+
 static PyObject *
 doki_registry_get (PyObject *self, PyObject *args)
 {
@@ -452,6 +492,9 @@ doki_registry_get (PyObject *self, PyObject *args)
     }
     if (canonical) {
         phase = get_global_phase(state);
+        if (debug_enabled) {
+            printf("[DEBUG] phase = " REAL_STRING_FORMAT "\n", phase);
+        }
         aux = complex_init(COS(phase), -SIN(phase));
         val = complex_mult(val, aux);
     }
@@ -464,7 +507,7 @@ static PyObject *
 doki_registry_apply (PyObject *self, PyObject *args)
 {
     PyObject *raw_val, *state_capsule, *gate_capsule,
-             *target_list, *control_set, *acontrol_set;
+             *target_list, *control_set, *acontrol_set, *aux;
     void *raw_state, *raw_gate;
     struct state_vector *state, *new_state;
     struct qgate *gate;
@@ -549,11 +592,50 @@ doki_registry_apply (PyObject *self, PyObject *args)
         }
     }
 
-    exit_code = 0;
+    if (num_controls > 0) {
+        aux = PySet_New(control_set);
+        for (i = 0; i < num_controls; i++) {
+            raw_val = PySet_Pop(aux);
+            if(!PyLong_Check(raw_val)) {
+                PyErr_SetString(DokiError, "control_set must be a set qubit ids (unsigned integers)");
+                return NULL;
+            }
+            controls[i] = PyLong_AsLong(raw_val);
+            if (controls[i] >= state->num_qubits) {
+                PyErr_SetString(DokiError, "Control qubit out of range");
+                return NULL;
+            }
+        }
+    }
+
+    if (num_anticontrols > 0) {
+        aux = PySet_New(acontrol_set);
+        for (i = 0; i < num_anticontrols; i++) {
+            raw_val = PySet_Pop(aux);
+            if(!PyLong_Check(raw_val)) {
+                PyErr_SetString(DokiError, "anticontrol_set must be a set qubit ids (unsigned integers)");
+                return NULL;
+            }
+            if (PySet_Contains(control_set, raw_val)) {
+                PyErr_SetString(DokiError, "A control cannot also be an anticontrol");
+                return NULL;
+            }
+            anticontrols[i] = PyLong_AsLong(raw_val);
+            if (anticontrols[i] >= state->num_qubits) {
+                PyErr_SetString(DokiError, "Anticontrol qubit out of range");
+                return NULL;
+            }
+        }
+    }
+
     for (i = 0; i < num_targets; i++) {
         raw_val = PyList_GetItem(target_list, i);
         if(!PyLong_Check(raw_val)) {
             PyErr_SetString(DokiError, "target_list must be a list of qubit ids (unsigned integers)");
+            return NULL;
+        }
+        if ((num_controls > 0 && PySet_Contains(control_set, raw_val)) || (num_anticontrols > 0 && PySet_Contains(acontrol_set, raw_val))) {
+            PyErr_SetString(DokiError, "A target cannot also be a control or an anticontrol");
             return NULL;
         }
         targets[i] = PyLong_AsLong(raw_val);
@@ -563,67 +645,39 @@ doki_registry_apply (PyObject *self, PyObject *args)
         }
     }
 
-    for (i = 0; i < num_controls; i++) {
-        raw_val = PySet_Pop(control_set);
-        if(!PyLong_Check(raw_val)) {
-            PyErr_SetString(DokiError, "control_set must be a set qubit ids (unsigned integers)");
-            return NULL;
-        }
-        controls[i] = PyLong_AsLong(raw_val);
-        if (controls[i] >= state->num_qubits) {
-            PyErr_SetString(DokiError, "Control qubit out of range");
-            return NULL;
-        }
+    new_state = MALLOC_TYPE(1, struct state_vector);
+    if (new_state == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate new state structure");
+        return NULL;
     }
-
-    for (i = 0; i < num_anticontrols; i++) {
-        raw_val = PySet_Pop(acontrol_set);
-        if(!PyLong_Check(raw_val)) {
-            PyErr_SetString(DokiError, "anticontrol_set must be a set qubit ids (unsigned integers)");
-            return NULL;
-        }
-        anticontrols[i] = PyLong_AsLong(raw_val);
-        if (anticontrols[i] >= state->num_qubits) {
-            PyErr_SetString(DokiError, "Anticontrol qubit out of range");
-            return NULL;
-        }
+    if (num_threads != -1) {
+        omp_set_num_threads(num_threads);
     }
+    // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls, num_anticontrols);
+    exit_code = apply_gate(state, gate, targets, num_targets, controls,
+                           num_controls, anticontrols, num_anticontrols,
+                           new_state);
 
-    if (exit_code == 0) {
-        new_state = MALLOC_TYPE(1, struct state_vector);
-        if (new_state == NULL) {
-            PyErr_SetString(DokiError, "Failed to allocate new state structure");
-            return NULL;
-        }
-        if (num_threads != -1) {
-            omp_set_num_threads(num_threads);
-        }
-        // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls, num_anticontrols);
-        exit_code = apply_gate(state, gate, targets, num_targets, controls,
-                               num_controls, anticontrols, num_anticontrols,
-                               new_state);
-
-        if (exit_code == 1) {
-            PyErr_SetString(DokiError, "Failed to initialize new state chunk");
-        }
-        else if (exit_code == 2) {
-            PyErr_SetString(DokiError, "Failed to allocate new state chunk");
-        }
-        else if (exit_code == 3) {
-            PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
-        }
-        else if (exit_code == 4) {
-            PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
-        }
-        else if (exit_code == 5) {
-            PyErr_SetString(DokiError, "Failed to apply gate");
-        }
-        else if (exit_code == 11) {
-            PyErr_SetString(DokiError, "Failed to allocate not_copy structure");
-        }
-        else if (exit_code != 0) {
-            PyErr_SetString(DokiError, "Unknown error when applying gate");
-        }
+    if (exit_code == 1) {
+        PyErr_SetString(DokiError, "Failed to initialize new state chunk");
+    }
+    else if (exit_code == 2) {
+        PyErr_SetString(DokiError, "Failed to allocate new state chunk");
+    }
+    else if (exit_code == 3) {
+        PyErr_SetString(DokiError, "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
+    }
+    else if (exit_code == 4) {
+        PyErr_SetString(DokiError, "Failed to allocate new state vector structure");
+    }
+    else if (exit_code == 5) {
+        PyErr_SetString(DokiError, "Failed to apply gate");
+    }
+    else if (exit_code == 11) {
+        PyErr_SetString(DokiError, "Failed to allocate not_copy structure");
+    }
+    else if (exit_code != 0) {
+        PyErr_SetString(DokiError, "Unknown error when applying gate");
     }
 
     if (exit_code > 0) {

@@ -12,6 +12,7 @@ state_init(struct state_vector *this, unsigned int num_qubits, int init)
         return 3;
     }
     this->size = NATURAL_ONE << num_qubits;
+    this->fcarg_init = 0;
     this->fcarg = -10.0;
     this->num_qubits = num_qubits;
     this->norm_const = 1;
