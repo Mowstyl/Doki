@@ -634,7 +634,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
             PyErr_SetString(DokiError, "target_list must be a list of qubit ids (unsigned integers)");
             return NULL;
         }
-        if ((num_controls > 0 && PySet_Contains(control_set, raw_val)) || (num_anticontrols > 0 && PySet_Contains(acontrol_set, raw_val)) {
+        if ((num_controls > 0 && PySet_Contains(control_set, raw_val)) || (num_anticontrols > 0 && PySet_Contains(acontrol_set, raw_val))) {
             PyErr_SetString(DokiError, "A target cannot also be a control or an anticontrol");
             return NULL;
         }
