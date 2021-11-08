@@ -1,5 +1,5 @@
 """Measurement tests."""
-import doki as doki
+import doki_gpu as doki
 import gc
 import numpy as np
 import os

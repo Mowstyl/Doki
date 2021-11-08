@@ -120,7 +120,7 @@ static PyMethodDef DokiMethods[] = {
 
 static struct PyModuleDef dokimodule = {
     PyModuleDef_HEAD_INIT,
-    "doki",   /* name of module */
+    "doki_gpu",   /* name of module */
     NULL, /* module documentation, may be NULL */
     -1,       /* size of per-interpreter state of the module,
                  or -1 if the module keeps state in global variables. */
@@ -128,7 +128,7 @@ static struct PyModuleDef dokimodule = {
 };
 
 PyMODINIT_FUNC
-PyInit_doki(void)
+PyInit_doki_gpu(void)
 {
     PyObject *m;
 
@@ -158,7 +158,7 @@ main(int argc, char *argv[])
     }
 
     /* Add a built-in module, before Py_Initialize */
-    if (PyImport_AppendInittab("doki", PyInit_doki) == -1) {
+    if (PyImport_AppendInittab("doki", PyInit_doki_gpu) == -1) {
         fprintf(stderr, "Error: could not extend in-built modules table\n");
         exit(1);
     }
@@ -173,10 +173,10 @@ main(int argc, char *argv[])
     /* Optionally import the module; alternatively,
        import can be deferred until the embedded script
        imports it. */
-    PyObject *pmodule = PyImport_ImportModule("doki");
+    PyObject *pmodule = PyImport_ImportModule("doki_gpu");
     if (!pmodule) {
         PyErr_Print();
-        fprintf(stderr, "Error: could not import module 'spam'\n");
+        fprintf(stderr, "Error: could not import module 'doki_gpu'\n");
     }
     PyMem_RawFree(program);
     return 0;

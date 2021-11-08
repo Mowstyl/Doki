@@ -15,18 +15,18 @@ docker exec manylinux2010 /bin/bash -c "python3.9 -m pip wheel /doki -w /output 
 
 :: Create manylinux builds from the raw builds
 docker exec manylinux2010 /bin/bash -c "ls -lah /output"
-docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_Mowstyl*cp36*whl -w /doki/dist"
-docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_Mowstyl*cp37*whl -w /doki/dist"
-docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_Mowstyl*cp38*whl -w /doki/dist"
-docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_Mowstyl*cp39*whl -w /doki/dist"
-::docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_Mowstyl*cp310*whl -w /doki/dist"
+docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_gpu_Mowstyl*cp36*whl -w /doki/dist"
+docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_gpu_Mowstyl*cp37*whl -w /doki/dist"
+docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_gpu_Mowstyl*cp38*whl -w /doki/dist"
+docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_gpu_Mowstyl*cp39*whl -w /doki/dist"
+::docker exec manylinux2010 /bin/bash -c "auditwheel repair /output/doki_gpu_Mowstyl*cp310*whl -w /doki/dist"
 
 :: Install doki for all available python versions
-docker exec manylinux2010 /bin/bash -c "python3.6 -m pip install --user /doki/dist/doki_Mowstyl*cp36*manylinux2010*.whl"
-docker exec manylinux2010 /bin/bash -c "python3.7 -m pip install --user /doki/dist/doki_Mowstyl*cp37*manylinux2010*.whl"
-docker exec manylinux2010 /bin/bash -c "python3.8 -m pip install --user /doki/dist/doki_Mowstyl*cp38*manylinux2010*.whl"
-docker exec manylinux2010 /bin/bash -c "python3.9 -m pip install --user /doki/dist/doki_Mowstyl*cp39*manylinux2010*.whl"
-::docker exec manylinux2010 /bin/bash -c "python3.10 -m pip install --user /doki/dist/doki_Mowstyl*cp310*manylinux2010*.whl"
+docker exec manylinux2010 /bin/bash -c "python3.6 -m pip install --user /doki/dist/doki_gpu_Mowstyl*cp36*manylinux2010*.whl"
+docker exec manylinux2010 /bin/bash -c "python3.7 -m pip install --user /doki/dist/doki_gpu_Mowstyl*cp37*manylinux2010*.whl"
+docker exec manylinux2010 /bin/bash -c "python3.8 -m pip install --user /doki/dist/doki_gpu_Mowstyl*cp38*manylinux2010*.whl"
+docker exec manylinux2010 /bin/bash -c "python3.9 -m pip install --user /doki/dist/doki_gpu_Mowstyl*cp39*manylinux2010*.whl"
+::docker exec manylinux2010 /bin/bash -c "python3.10 -m pip install --user /doki/dist/doki_gpu_Mowstyl*cp310*manylinux2010*.whl"
 
 pause
 

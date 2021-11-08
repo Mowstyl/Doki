@@ -43,7 +43,7 @@ class DokiBuild(build_ext):
 def main():
     """Code to be executed on install."""
     setup(
-        name="doki-Mowstyl",
+        name="doki_gpu-Mowstyl",
         version="1.3.0",
         author="Hernán Indíbil de la Cruz Calvo",
         author_email="HernanIndibil.LaCruz@alu.uclm.es",
@@ -70,7 +70,7 @@ def main():
             "Topic :: Scientific/Engineering",
         ],
         keywords="qsimov simulator quantum",
-        ext_modules=[Extension('doki', sources=sources,
+        ext_modules=[Extension('doki_gpu', sources=sources,
                                extra_compile_args=_comp_args,
                                extra_link_args=_comp_args)],
         data_files=[('headers', headers)],
