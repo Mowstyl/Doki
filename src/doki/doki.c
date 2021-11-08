@@ -592,35 +592,39 @@ doki_registry_apply (PyObject *self, PyObject *args)
         }
     }
 
-    aux = PySet_New(control_set);
-    for (i = 0; i < num_controls; i++) {
-        raw_val = PySet_Pop(aux);
-        if(!PyLong_Check(raw_val)) {
-            PyErr_SetString(DokiError, "control_set must be a set qubit ids (unsigned integers)");
-            return NULL;
-        }
-        controls[i] = PyLong_AsLong(raw_val);
-        if (controls[i] >= state->num_qubits) {
-            PyErr_SetString(DokiError, "Control qubit out of range");
-            return NULL;
+    if (num_controls > 0) {
+        aux = PySet_New(control_set);
+        for (i = 0; i < num_controls; i++) {
+            raw_val = PySet_Pop(aux);
+            if(!PyLong_Check(raw_val)) {
+                PyErr_SetString(DokiError, "control_set must be a set qubit ids (unsigned integers)");
+                return NULL;
+            }
+            controls[i] = PyLong_AsLong(raw_val);
+            if (controls[i] >= state->num_qubits) {
+                PyErr_SetString(DokiError, "Control qubit out of range");
+                return NULL;
+            }
         }
     }
 
-    aux = PySet_New(acontrol_set);
-    for (i = 0; i < num_anticontrols; i++) {
-        raw_val = PySet_Pop(aux);
-        if(!PyLong_Check(raw_val)) {
-            PyErr_SetString(DokiError, "anticontrol_set must be a set qubit ids (unsigned integers)");
-            return NULL;
-        }
-        if (PySet_Contains(control_set, raw_val)) {
-            PyErr_SetString(DokiError, "A control cannot also be an anticontrol");
-            return NULL;
-        }
-        anticontrols[i] = PyLong_AsLong(raw_val);
-        if (anticontrols[i] >= state->num_qubits) {
-            PyErr_SetString(DokiError, "Anticontrol qubit out of range");
-            return NULL;
+    if (num_anticontrols > 0) {
+        aux = PySet_New(acontrol_set);
+        for (i = 0; i < num_anticontrols; i++) {
+            raw_val = PySet_Pop(aux);
+            if(!PyLong_Check(raw_val)) {
+                PyErr_SetString(DokiError, "anticontrol_set must be a set qubit ids (unsigned integers)");
+                return NULL;
+            }
+            if (PySet_Contains(control_set, raw_val)) {
+                PyErr_SetString(DokiError, "A control cannot also be an anticontrol");
+                return NULL;
+            }
+            anticontrols[i] = PyLong_AsLong(raw_val);
+            if (anticontrols[i] >= state->num_qubits) {
+                PyErr_SetString(DokiError, "Anticontrol qubit out of range");
+                return NULL;
+            }
         }
     }
 
@@ -630,7 +634,7 @@ doki_registry_apply (PyObject *self, PyObject *args)
             PyErr_SetString(DokiError, "target_list must be a list of qubit ids (unsigned integers)");
             return NULL;
         }
-        if (PySet_Contains(control_set, raw_val) || PySet_Contains(acontrol_set, raw_val)) {
+        if ((num_controls > 0 && PySet_Contains(control_set, raw_val)) || (num_anticontrols > 0 && PySet_Contains(acontrol_set, raw_val)) {
             PyErr_SetString(DokiError, "A target cannot also be a control or an anticontrol");
             return NULL;
         }
