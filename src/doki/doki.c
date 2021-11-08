@@ -339,7 +339,8 @@ doki_registry_del (PyObject *self, PyObject *args)
 
     doki_registry_destroy(capsule);
     PyCapsule_SetDestructor(capsule, NULL);
-    return Py_None;
+
+    Py_RETURN_NONE;
 }
 
 static PyObject *
