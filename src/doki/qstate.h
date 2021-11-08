@@ -33,6 +33,8 @@ struct state_vector
     COMPLEX_TYPE **vector;
     /* normalization constant */
     REAL_TYPE      norm_const;
+    /* fcarg initialized */
+    _Bool          fcarg_init;
     /* first complex argument */
     REAL_TYPE      fcarg;
 };
