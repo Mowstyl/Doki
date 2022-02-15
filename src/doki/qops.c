@@ -358,7 +358,10 @@ _densityFun(NATURAL_TYPE i, NATURAL_TYPE j,
 
     elem_i = state_get(state, i);
     elem_j = state_get(state, j);
+    // printf("state[%lld] = " COMPLEX_STRING_FORMAT "\n", i, COMPLEX_STRING(elem_i));
+    // printf("state[%lld] = " COMPLEX_STRING_FORMAT "\n", j, COMPLEX_STRING(elem_i));
     result = complex_mult(elem_i, conj(elem_j));
+    // printf("result = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(result));
 
     return result;
 }

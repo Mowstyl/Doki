@@ -1007,16 +1007,17 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
         return NULL;
     }
 
-    val = COMPLEX_ZERO;
     if (!getitem(matrix, i, j, &val)) {
         PyErr_SetString(DokiError, "Error getting element");
         return NULL;
     }
+	// printf("absol = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(val));
 
     if (isnan(RE(val)) || isnan(IM(val))) {
         PyErr_SetString(DokiError, "Error calculating element");
         return NULL;
     }
+	// printf("fabsol = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(val));
 
     return PyComplex_FromDoubles(RE(val), IM(val));
 }
