@@ -60,10 +60,6 @@ new_FunctionalMatrix(NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
  * Get the element (i, j) from the matrix a, and return the result in
  * the address pointed by sol. If a 0 is returned, something went wrong.
  */
-
-#ifndef _MSC_VER
-__attribute__ ((pure))
-#endif
 int
 getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol);
 

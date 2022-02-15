@@ -121,7 +121,6 @@ getitem(FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j, COMPLEX_TYPE *sol)
 
     if (result) {
         *sol = complex_mult(*sol, a->s);
-		// printf("sol = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(*sol));
     }
 
     return result;
