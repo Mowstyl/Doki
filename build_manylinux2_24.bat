@@ -54,6 +54,7 @@ docker exec manylinux_2_24 /bin/bash -c "python3.6 /doki/tests/join_regs_tests.p
 docker exec manylinux_2_24 /bin/bash -c "python3.6 /doki/tests/canonical_form_tests.py 1 5"
 docker exec manylinux_2_24 /bin/bash -c "python3.6 /doki/tests/probability_tests.py 1 5 1"
 docker exec manylinux_2_24 /bin/bash -c "python3.6 /doki/tests/probability_tests.py 1 5 2"
+docker exec manylinux_2_24 /bin/bash -c "python3.6 /doki/tests/density_matrix_tests.py 1 5"
 :: Python 3.7
 echo Python3.7
 docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/reg_creation_tests.py 1 5"
@@ -68,6 +69,7 @@ docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/join_regs_tests.p
 docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/canonical_form_tests.py 1 5"
 docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/probability_tests.py 1 5 1"
 docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/probability_tests.py 1 5 2"
+docker exec manylinux_2_24 /bin/bash -c "python3.7 /doki/tests/density_matrix_tests.py 1 5"
 :: Python 3.8
 echo Python3.8
 docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/reg_creation_tests.py 1 5"
@@ -82,6 +84,7 @@ docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/join_regs_tests.p
 docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/canonical_form_tests.py 1 5"
 docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/probability_tests.py 1 5 1"
 docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/probability_tests.py 1 5 2"
+docker exec manylinux_2_24 /bin/bash -c "python3.8 /doki/tests/density_matrix_tests.py 1 5"
 :: Python 3.9
 echo Python3.9
 docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/reg_creation_tests.py 1 5"
@@ -96,6 +99,7 @@ docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/join_regs_tests.p
 docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/canonical_form_tests.py 1 5"
 docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/probability_tests.py 1 5 1"
 docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/probability_tests.py 1 5 2"
+docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/density_matrix_tests.py 1 5"
 :: Python 3.10
 ::echo Python3.10
 ::docker exec manylinux_2_24 /bin/bash -c "python3.10 /doki/tests/reg_creation_tests.py 1 5"
@@ -110,6 +114,7 @@ docker exec manylinux_2_24 /bin/bash -c "python3.9 /doki/tests/probability_tests
 ::docker exec manylinux_2_24 /bin/bash -c "python3.10 /doki/tests/canonical_form_tests.py 1 5"
 ::docker exec manylinux_2_24 /bin/bash -c "python3.10 /doki/tests/probability_tests.py 1 5 1"
 ::docker exec manylinux_2_24 /bin/bash -c "python3.10 /doki/tests/probability_tests.py 1 5 2"
+::docker exec manylinux_2_24 /bin/bash -c "python3.10 /doki/tests/density_matrix_tests.py 1 5"
 
 :: Stop the container
 docker container stop manylinux_2_24
