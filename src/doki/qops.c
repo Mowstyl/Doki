@@ -288,52 +288,61 @@ calculate_empty(struct state_vector *state, struct qgate *gate,
                 struct state_vector *new_state, struct array_list_e *not_copy,
                 REAL_TYPE *norm_const)
 {
-    NATURAL_TYPE i, reg_index, curr_id;
+    NATURAL_TYPE i, reg_index, curr_id, size;
     COMPLEX_TYPE sum;
     REAL_TYPE aux_const;
     unsigned char aux_code;
     unsigned int j, k, row;
+    COMPLEX_TYPE *gpu_vector, *save_vector;
     aux_code = 0;
     aux_const = 0;
     reg_index = 0;
     curr_id = 0;
     // We can calculate each element of the new state separately
-    #pragma omp parallel for reduction (+:aux_const) \
-                             default(none) \
-                             shared (state, not_copy, new_state, gate, \
-                                     targets, num_targets, \
-                                     controls, num_controls, \
-                                     anticontrols, num_anticontrols, \
-                                     norm_const) \
-                             private (curr_id, sum, row, reg_index, i, j, k)
-    for (i = 0; i < not_copy->size; i++) {
-        // If there has been any error in this thread, we skip
-        curr_id = alist_get(not_copy, i);
-        reg_index = curr_id;
-        sum = complex_init(0, 0);
-        // We have gate->size elements to add in sum
-        for (j = 0; j < gate->size; j++) {
-            // We get the value of each target qubit id on the current new state element
-            // and we store it in rowbits following the same order as the one in targets
-            row = 0;
-            for (k = 0; k < num_targets; k++) {
-                row += ((curr_id & (NATURAL_ONE << targets[k])) != 0) << k;
-            }
-            for (k = 0; k < gate->num_qubits; k++) {
-                // We check the value of the kth bit of j
-                // and set the value of the kth target bit to it
-                if ((j & (NATURAL_ONE << k)) != 0) {
-                    reg_index |= NATURAL_ONE << targets[k];
+    save_vector = state->vector;
+    gpu_vector = state->vector;
+    size = state->size;
+    #pragma omp target map(gpu_vector[0:size])
+    {
+        state->vector = gpu_vector;
+        #pragma omp parallel for reduction (+:aux_const) \
+                                 default(none) \
+                                 shared (state, not_copy, new_state, gate, \
+                                         targets, num_targets, \
+                                         controls, num_controls, \
+                                         anticontrols, num_anticontrols, \
+                                         norm_const) \
+                                 private (curr_id, sum, row, reg_index, i, j, k)
+        for (i = 0; i < not_copy->size; i++) {
+            // If there has been any error in this thread, we skip
+            curr_id = alist_get(not_copy, i);
+            reg_index = curr_id;
+            sum = complex_init(0, 0);
+            // We have gate->size elements to add in sum
+            for (j = 0; j < gate->size; j++) {
+                // We get the value of each target qubit id on the current new state element
+                // and we store it in rowbits following the same order as the one in targets
+                row = 0;
+                for (k = 0; k < num_targets; k++) {
+                    row += ((curr_id & (NATURAL_ONE << targets[k])) != 0) << k;
                 }
-                else {
-                    reg_index &= ~(NATURAL_ONE << targets[k]);
+                for (k = 0; k < gate->num_qubits; k++) {
+                    // We check the value of the kth bit of j
+                    // and set the value of the kth target bit to it
+                    if ((j & (NATURAL_ONE << k)) != 0) {
+                        reg_index |= NATURAL_ONE << targets[k];
+                    }
+                    else {
+                        reg_index &= ~(NATURAL_ONE << targets[k]);
+                    }
                 }
+                sum = complex_sum(sum, complex_mult(state_get(state, reg_index), gate->matrix[row][j]));
             }
-            sum = complex_sum(sum, complex_mult(state_get(state, reg_index), gate->matrix[row][j]));
+            aux_const += pow(RE(sum), 2) + pow(IM(sum), 2);
+            // printf("[DEBUG: %i] -> new_state[%lld]\n", omp_get_thread_num(), curr_id);
+            state_set(new_state, curr_id, sum);
         }
-        aux_const += pow(RE(sum), 2) + pow(IM(sum), 2);
-        // printf("[DEBUG: %i] -> new_state[%lld]\n", omp_get_thread_num(), curr_id);
-        state_set(new_state, curr_id, sum);
+        state->vector = save_vector;
     }
     *norm_const += aux_const;
     return aux_code;

@@ -24,19 +24,17 @@
 struct state_vector
 {
     /* total size of the vector */
-    NATURAL_TYPE   size;
-    /* number of chunks */
-    size_t         num_chunks;
+    NATURAL_TYPE  size;
     /* number of qubits in this quantum system */
-    unsigned int   num_qubits;
+    unsigned int  num_qubits;
     /* partial vector */
-    COMPLEX_TYPE **vector;
+    COMPLEX_TYPE *vector;
     /* normalization constant */
-    REAL_TYPE      norm_const;
+    REAL_TYPE     norm_const;
     /* fcarg initialized */
-    _Bool          fcarg_init;
+    _Bool         fcarg_init;
     /* first complex argument */
-    REAL_TYPE      fcarg;
+    REAL_TYPE     fcarg;
 };
 
 /** \fn unsigned char state_init(struct state_vector *this, unsigned int num_qubits, int init);

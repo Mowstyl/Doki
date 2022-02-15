@@ -165,7 +165,7 @@ static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 #define PRECISION 2
 #if PRECISION==1
 	#define REAL_TYPE float
-	#ifndef _WIN32
+	#if !defined(_WIN32) || defined(__GNUC__)
 		#define COMPLEX_TYPE float _Complex
 	#else
 		#define COMPLEX_TYPE _Fcomplex
@@ -178,7 +178,7 @@ static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S NOTATION
 #elif PRECISION==2
 	#define REAL_TYPE double
-	#ifndef _WIN32
+	#if !defined(_WIN32) || defined(__GNUC__)
 		#define COMPLEX_TYPE double _Complex
 	#else
 		#define COMPLEX_TYPE _Dcomplex
@@ -191,7 +191,7 @@ static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "l" NOTATION
 #elif PRECISION==3
 	#define REAL_TYPE long double
-	#ifndef _WIN32
+	#if !defined(_WIN32) || defined(__GNUC__)
 		#define COMPLEX_TYPE long double _Complex
 	#else
 		#define COMPLEX_TYPE _Lcomplex
@@ -204,7 +204,7 @@ static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "L" NOTATION
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) || defined(__GNUC__)
 	static const COMPLEX_TYPE COMPLEX_ZERO = 0;
 	static const COMPLEX_TYPE COMPLEX_ONE = 1;
 #else

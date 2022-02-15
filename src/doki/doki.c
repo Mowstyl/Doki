@@ -486,7 +486,7 @@ doki_registry_get (PyObject *self, PyObject *args)
     state = (struct state_vector*) raw_state;
     val = state_get(state, id);
     if (debug_enabled) {
-        printf("[DEBUG] raw = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(state->vector[id/COMPLEX_ARRAY_SIZE][id%COMPLEX_ARRAY_SIZE]));
+        printf("[DEBUG] raw = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(state->vector[id]));
         printf("[DEBUG] normconst = %lf\n", state->norm_const);
         printf("[DEBUG] res = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(val));
     }
