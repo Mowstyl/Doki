@@ -45,6 +45,7 @@ jobs:
         python tests/canonical_form_tests.py 1 14
         python tests/probability_tests.py 1 14 1
         python tests/probability_tests.py 1 14 4
+        python tests/density_matrix_tests.py 1 5
     - uses: actions/upload-artifact@v2
       with:
         name: doki-artifact

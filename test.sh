@@ -11,4 +11,5 @@ python tests/join_regs_tests.py 14 8
 python tests/canonical_form_tests.py 1 14
 python tests/probability_tests.py 1 14 1
 python tests/probability_tests.py 1 14 8
+python tests/density_matrix_tests.py 1 5
 pause
