@@ -72,7 +72,7 @@ def main():
         ],
         keywords="qsimov simulator quantum",
         install_requires=[
-            "numpy>=1.21"
+            "numpy>=1.19"
         ],
         ext_modules=[Extension('doki', sources=sources,
                                extra_compile_args=_comp_args,

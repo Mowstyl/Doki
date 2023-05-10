@@ -65,7 +65,7 @@ def main():
         for nq in range(min_qubits, max_qubits + 1):
             check_density_matrix(nq)
         if max_qubits > 1:
-            print("Partial trace tests...")
+            print("\tPartial trace tests...")
             for nq in range(max(2, min_qubits), max_qubits + 1):
                 check_partial_trace(nq)
         print("\tPEACE AND TRANQUILITY")
