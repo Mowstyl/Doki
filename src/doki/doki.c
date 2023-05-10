@@ -1,6 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <omp.h>
+#include <numpy/arrayobject.h>
 #include "platform.h"
 #include "qstate.h"
 #include "qgate.h"
@@ -35,6 +36,15 @@ doki_gate_get (PyObject *self, PyObject *args);
 
 static PyObject *
 doki_registry_get (PyObject *self, PyObject *args);
+
+void
+custom_state_init_py(PyObject *values, struct state_vector *state);
+
+void
+custom_state_init_np(PyObject *values, struct state_vector *state);
+
+static PyObject *
+doki_registry_new_data (PyObject *self, PyObject *args);
 
 static PyObject *
 doki_registry_apply (PyObject *self, PyObject *args);
@@ -94,6 +104,7 @@ static PyMethodDef DokiMethods[] = {
     {"gate_new", doki_gate_new, METH_VARARGS, "Create new gate"},
     {"gate_get", doki_gate_get, METH_VARARGS, "Get matrix associated to gate"},
     {"registry_new", doki_registry_new, METH_VARARGS, "Create new registry"},
+    {"registry_new_data", doki_registry_new_data, METH_VARARGS, "Create new registry initialized with the specified values"},
     {"registry_clone", doki_registry_clone, METH_VARARGS, "Clone a registry"},
     {"registry_del", doki_registry_del, METH_VARARGS, "Destroy a registry"},
     {"registry_get", doki_registry_get, METH_VARARGS, "Get value from registry"},
@@ -132,6 +143,8 @@ PyInit_doki(void)
 {
     PyObject *m;
 
+    assert(!PyErr_Occurred());
+    import_array(); // Initialise Numpy
     m = PyModule_Create(&dokimodule);
     if (m == NULL)
         return NULL;
@@ -176,7 +189,7 @@ main(int argc, char *argv[])
     PyObject *pmodule = PyImport_ImportModule("doki");
     if (!pmodule) {
         PyErr_Print();
-        fprintf(stderr, "Error: could not import module 'spam'\n");
+        fprintf(stderr, "Error: could not import module 'doki'\n");
     }
     PyMem_RawFree(program);
     return 0;
@@ -502,6 +515,127 @@ doki_registry_get (PyObject *self, PyObject *args)
     result = PyComplex_FromDoubles(RE(val), IM(val));
 
     return result;
+}
+
+void
+custom_state_init_py(PyObject *values, struct state_vector *state)
+{
+    NATURAL_TYPE i;
+    COMPLEX_TYPE val;
+    PyObject *aux;
+
+    for (i = 0; i < state->size; i++) {
+        aux = PyList_GetItem(values, i);
+        val = complex_init(PyComplex_RealAsDouble(aux), PyComplex_ImagAsDouble(aux));
+        state_set(state, i, val);
+    }
+}
+
+void
+custom_state_init_np(PyObject *values, struct state_vector *state)
+{
+    NATURAL_TYPE i;
+    COMPLEX_TYPE val;
+    PyObject *aux;
+
+    for (i = 0; i < state->size; i++) {
+        aux = PyArray_GETITEM(values, PyArray_GETPTR1(values, i));
+        val = complex_init(PyComplex_RealAsDouble(aux), PyComplex_ImagAsDouble(aux));
+        state_set(state, i, val);
+    }
+}
+
+static PyObject *
+doki_registry_new_data (PyObject *self, PyObject *args)
+{
+    PyObject *raw_vals;
+    unsigned int num_qubits;
+    unsigned char result;
+    struct state_vector *state;
+    short debug_enabled;
+
+    if (!PyArg_ParseTuple(args, "IOh", &num_qubits, &raw_vals, &debug_enabled)) {
+        PyErr_SetString(DokiError, "Syntax: registry_new_data(num_qubits, values, verbose)");
+        return NULL;
+    }
+    if (num_qubits == 0) {
+        PyErr_SetString(DokiError, "num_qubits can't be zero");
+        return NULL;
+    }
+    if (debug_enabled) {
+        printf("[DEBUG] State allocation\n");
+    }
+    state = MALLOC_TYPE(1, struct state_vector);
+    if (state == NULL) {
+        PyErr_SetString(DokiError, "Failed to allocate state structure");
+        return NULL;
+    }
+    if (debug_enabled) {
+        printf("[DEBUG] State initialization\n");
+    }
+    result = state_init(state, num_qubits, 0);
+    if (result == 1) {
+        PyErr_SetString(DokiError, "Failed to allocate state vector");
+        return NULL;
+    }
+    else if (result == 2) {
+        PyErr_SetString(DokiError, "Failed to allocate state chunk");
+        return NULL;
+    }
+    else if (result == 3) {
+        PyErr_SetString(DokiError, "Number of qubits exceeds maximum");
+        return NULL;
+    }
+    else if (result != 0) {
+        PyErr_SetString(DokiError, "Unknown error when creating state");
+        return NULL;
+    }
+    if (debug_enabled) {
+        printf("[DEBUG] Dumping data...\n");
+    }
+    if (PyArray_Check(raw_vals)) {
+        if (debug_enabled) {
+            printf("[DEBUG] Checking array type\n");
+        }
+        if (!PyArray_ISNUMBER(raw_vals)) {
+            PyErr_SetString(DokiError, "values have to be numbers");
+            return NULL;
+        }
+        if (debug_enabled) {
+            printf("[DEBUG] Checking array size\n");
+        }
+        if (PyArray_SIZE(raw_vals) != state->size) {
+            PyErr_SetString(DokiError, "Wrong array size for the specified number of qubits");
+            return NULL;
+        }
+        if (debug_enabled) {
+            printf("[DEBUG] Working with numpy array\n");
+        }
+        custom_state_init_np(raw_vals, state);
+    }
+    else if (PyList_Check(raw_vals)) {
+        if (debug_enabled) {
+            printf("[DEBUG] Checking list size\n");
+        }
+        if (PyList_GET_SIZE(raw_vals) != state->size) {
+            PyErr_SetString(DokiError, "Wrong list size for the specified number of qubits\n");
+            return NULL;
+        }
+        if (debug_enabled) {
+            printf("[DEBUG] Working with python list\n");
+        }
+        custom_state_init_py(raw_vals, state);
+    }
+    else {
+        PyErr_SetString(DokiError, "values has to be either a python list or a numpy array");
+        return NULL;
+    }
+    if (debug_enabled) {
+        printf("[DEBUG] Starting creation\n");
+    }
+
+    return PyCapsule_New((void*) state, "qsimov.doki.state_vector",
+                         &doki_registry_destroy);
 }
 
 static PyObject *

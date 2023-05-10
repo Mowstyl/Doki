@@ -1,6 +1,7 @@
 """Installation module."""
 
 import platform
+import numpy as np
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -44,7 +45,7 @@ def main():
     """Code to be executed on install."""
     setup(
         name="doki-Mowstyl",
-        version="1.3.2",
+        version="1.4.0",
         author="Hernán Indíbil de la Cruz Calvo",
         author_email="HernanIndibil.LaCruz@alu.uclm.es",
         cmdclass={'build_ext': DokiBuild},
@@ -70,9 +71,13 @@ def main():
             "Topic :: Scientific/Engineering",
         ],
         keywords="qsimov simulator quantum",
+        install_requires=[
+            "numpy>=1.21"
+        ],
         ext_modules=[Extension('doki', sources=sources,
                                extra_compile_args=_comp_args,
-                               extra_link_args=_comp_args)],
+                               extra_link_args=_comp_args,
+                               include_dirs=[np.get_include()])],
         data_files=[('headers', headers)],
         python_requires=">=3.6",
     )

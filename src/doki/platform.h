@@ -152,11 +152,11 @@
 #define CALLOC_TYPE(n,type) ((type *) calloc((n), sizeof(type)))
 #define REALLOC_TYPE(p,n,type) ((type *) realloc((p), (n) * sizeof(type)))
 
-#define NATURAL_TYPE long long int
-#define NATURAL_STRING_FORMAT "%lld"
+#define NATURAL_TYPE intmax_t
+#define NATURAL_STRING_FORMAT "%j"
 static const NATURAL_TYPE NATURAL_ZERO = 0;
 static const NATURAL_TYPE NATURAL_ONE = 1;
-static const NATURAL_TYPE NATURAL_MAX = LLONG_MAX;
+static const NATURAL_TYPE NATURAL_MAX = INTMAX_MAX;
 static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 
 #define DECIMAL_PLACES 5 // max: 17 (MinGWx64-gcc)
