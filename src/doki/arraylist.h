@@ -24,23 +24,20 @@
 struct array_list_e
 {
   /* total (not partial) size of the vector */
-  NATURAL_TYPE   size;
+  NATURAL_TYPE size;
   /* number of chunks */
-  size_t         num_chunks;
+  size_t num_chunks;
   /* vector */
   NATURAL_TYPE **vector;
 };
 
-unsigned char
-alist_init(struct array_list_e *this, NATURAL_TYPE size);
+unsigned char alist_init (struct array_list_e *this, NATURAL_TYPE size);
 
-void
-alist_clear(struct array_list_e *this);
+void alist_clear (struct array_list_e *this);
 
-void
-alist_set(struct array_list_e *this, NATURAL_TYPE i, NATURAL_TYPE value);
+void alist_set (struct array_list_e *this, NATURAL_TYPE i, NATURAL_TYPE value);
 
 NATURAL_TYPE
-alist_get(struct array_list_e *this, NATURAL_TYPE i);
+alist_get (struct array_list_e *this, NATURAL_TYPE i);
 
 #endif

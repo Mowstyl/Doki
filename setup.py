@@ -45,7 +45,7 @@ def main():
     """Code to be executed on install."""
     setup(
         name="doki-Mowstyl",
-        version="1.4.0",
+        version="1.5.0",
         author="Hernán Indíbil de la Cruz Calvo",
         author_email="HernanIndibil.LaCruz@alu.uclm.es",
         cmdclass={'build_ext': DokiBuild},

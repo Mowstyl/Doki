@@ -49,13 +49,15 @@
 /** \def COMPLEX_ONE
  *  \brief Literal for complex number one.
  *
- *  Number one literal for the specified COMPLEX_TYPE. Currently complex_init(1, 0).
+ *  Number one literal for the specified COMPLEX_TYPE. Currently
+ * complex_init(1, 0).
  */
 
 /** \def COMPLEX_ZERO
  *  \brief Literal for complex number zero.
  *
- *  Number zero literal for the specified COMPLEX_TYPE. Currently complex_init(0, 0).
+ *  Number zero literal for the specified COMPLEX_TYPE. Currently
+ * complex_init(0, 0).
  */
 
 /** \def CHUNK_MAX
@@ -135,129 +137,138 @@
 #ifndef __PLATFORM_H
 #define __PLATFORM_H
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <complex.h>
 #include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #if defined(_MSC_VER)
-	#define ALIGNED_(x) __declspec(align(x))
+#define ALIGNED_(x) __declspec (align (x))
 #else
-	#if defined(__GNUC__)
-		#define ALIGNED_(x) __attribute__ ((aligned(x)))
-	#endif
+#if defined(__GNUC__)
+#define ALIGNED_(x) __attribute__ ((aligned (x)))
+#endif
 #endif
 
-#define MALLOC_TYPE(n,type) ((type *) malloc((n) * sizeof(type)))
-#define CALLOC_TYPE(n,type) ((type *) calloc((n), sizeof(type)))
-#define REALLOC_TYPE(p,n,type) ((type *) realloc((p), (n) * sizeof(type)))
+#define MALLOC_TYPE(n, type) ((type *)malloc ((n) * sizeof (type)))
+#define CALLOC_TYPE(n, type) ((type *)calloc ((n), sizeof (type)))
+#define REALLOC_TYPE(p, n, type) ((type *)realloc ((p), (n) * sizeof (type)))
 
 #define NATURAL_TYPE intmax_t
+#ifdef _MSC_VER
+#define NATURAL_STRING_FORMAT "%lld"
+#else
 #define NATURAL_STRING_FORMAT "%j"
+#endif
 static const NATURAL_TYPE NATURAL_ZERO = 0;
 static const NATURAL_TYPE NATURAL_ONE = 1;
 static const NATURAL_TYPE NATURAL_MAX = INTMAX_MAX;
-static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
+static const unsigned int NATURAL_BITS = sizeof (NATURAL_TYPE) * 8 - 1;
 
-#define DECIMAL_PLACES 5 // max: 17 (MinGWx64-gcc)
+#define DECIMAL_PLACES 5     // max: 17 (MinGWx64-gcc)
 #define DECIMAL_PLACES_S "5" // same as before, but as a string
-#define NOTATION "g" // f for normal behaviour, e for scientific notation, g for shortest (f or e)
+#define NOTATION                                                              \
+  "g" // f for normal behaviour, e for scientific notation, g for shortest (f
+      // or e)
 #define PRECISION 2
-#if PRECISION==1
-	#define REAL_TYPE float
-	#ifndef _WIN32
-		#define COMPLEX_TYPE float _Complex
-	#else
-		#define COMPLEX_TYPE _Fcomplex
-	#endif
-	#define RE crealf
-	#define IM cimagf
-	#define ARG cargf
-	#define COS cosf
-	#define SIN sinf
-	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S NOTATION
-#elif PRECISION==2
-	#define REAL_TYPE double
-	#ifndef _WIN32
-		#define COMPLEX_TYPE double _Complex
-	#else
-		#define COMPLEX_TYPE _Dcomplex
-	#endif
-	#define RE creal
-	#define IM cimag
-	#define ARG carg
-	#define COS cos
-	#define SIN sin
-	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "l" NOTATION
-#elif PRECISION==3
-	#define REAL_TYPE long double
-	#ifndef _WIN32
-		#define COMPLEX_TYPE long double _Complex
-	#else
-		#define COMPLEX_TYPE _Lcomplex
-	#endif
-	#define RE creall
-	#define IM cimagl
-	#define ARG cargl
-	#define COS cosl
-	#define SIN sinl
-	#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "L" NOTATION
+#if PRECISION == 1
+#define REAL_TYPE float
+#ifndef _WIN32
+#define COMPLEX_TYPE float _Complex
+#else
+#define COMPLEX_TYPE _Fcomplex
+#endif
+#define RE crealf
+#define IM cimagf
+#define ARG cargf
+#define COS cosf
+#define SIN sinf
+#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S NOTATION
+#elif PRECISION == 2
+#define REAL_TYPE double
+#ifndef _WIN32
+#define COMPLEX_TYPE double _Complex
+#else
+#define COMPLEX_TYPE _Dcomplex
+#endif
+#define RE creal
+#define IM cimag
+#define ARG carg
+#define COS cos
+#define SIN sin
+#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "l" NOTATION
+#elif PRECISION == 3
+#define REAL_TYPE long double
+#ifndef _WIN32
+#define COMPLEX_TYPE long double _Complex
+#else
+#define COMPLEX_TYPE _Lcomplex
+#endif
+#define RE creall
+#define IM cimagl
+#define ARG cargl
+#define COS cosl
+#define SIN sinl
+#define REAL_STRING_FORMAT "%." DECIMAL_PLACES_S "L" NOTATION
 #endif
 
 #ifndef _WIN32
-	static const COMPLEX_TYPE COMPLEX_ZERO = 0;
-	static const COMPLEX_TYPE COMPLEX_ONE = 1;
+static const COMPLEX_TYPE COMPLEX_ZERO = 0;
+static const COMPLEX_TYPE COMPLEX_ONE = 1;
 #else
-	static const COMPLEX_TYPE COMPLEX_ZERO = { 0, 0 };
-	static const COMPLEX_TYPE COMPLEX_ONE = { 1, 0 };
+static const COMPLEX_TYPE COMPLEX_ZERO = { 0, 0 };
+static const COMPLEX_TYPE COMPLEX_ONE = { 1, 0 };
 #endif
 
 #define COMPLEX_STRING_FORMAT REAL_STRING_FORMAT "+" REAL_STRING_FORMAT "i"
-#define COMPLEX_STRING(c) RE(c), IM(c)
-static const unsigned int REAL_BITS = sizeof(REAL_TYPE) * 8;
-static const unsigned int COMPLEX_BITS = sizeof(COMPLEX_TYPE) * 8;
-static const size_t COMPLEX_ARRAY_SIZE = ((size_t)-1) / sizeof(COMPLEX_TYPE);
-static const size_t NATURAL_ARRAY_SIZE = ((size_t)-1) / sizeof(NATURAL_TYPE);
-static const size_t COMPLEX_2DARRAY_SIZE = ((size_t)-1) / sizeof(COMPLEX_TYPE*);
-static const size_t NATURAL_2DARRAY_SIZE = ((size_t)-1) / sizeof(NATURAL_TYPE*);
+#define COMPLEX_STRING(c) RE (c), IM (c)
+static const unsigned int REAL_BITS = sizeof (REAL_TYPE) * 8;
+static const unsigned int COMPLEX_BITS = sizeof (COMPLEX_TYPE) * 8;
+static const size_t COMPLEX_ARRAY_SIZE = ((size_t)-1) / sizeof (COMPLEX_TYPE);
+static const size_t NATURAL_ARRAY_SIZE = ((size_t)-1) / sizeof (NATURAL_TYPE);
+static const size_t COMPLEX_2DARRAY_SIZE
+    = ((size_t)-1) / sizeof (COMPLEX_TYPE *);
+static const size_t NATURAL_2DARRAY_SIZE
+    = ((size_t)-1) / sizeof (NATURAL_TYPE *);
 
 /*
-#define _AUX1_MAX_NUM_QUBITS log2_64(COMPLEX_ARRAY_SIZE) + log2_64(COMPLEX_2DARRAY_SIZE)
+#define _AUX1_MAX_NUM_QUBITS log2_64(COMPLEX_ARRAY_SIZE) +
+log2_64(COMPLEX_2DARRAY_SIZE)
 // Indexing with two natural numbers
 #define _AUX2_MAX_NUM_QUBITS 2 * NATURAL_BITS
-#define MAX_NUM_QUBITS _AUX1_MAX_NUM_QUBITS <= _AUX2_MAX_NUM_QUBITS ? _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
+#define MAX_NUM_QUBITS _AUX1_MAX_NUM_QUBITS <= _AUX2_MAX_NUM_QUBITS ?
+_AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 */
-#define MAX_NUM_QUBITS log2_64(NATURAL_MAX)
-
+#define MAX_NUM_QUBITS log2_64 (NATURAL_MAX)
 
 /**
  * complex_init
  */
 COMPLEX_TYPE
-complex_init(REAL_TYPE real, REAL_TYPE imag);
+complex_init (REAL_TYPE real, REAL_TYPE imag);
 
 COMPLEX_TYPE
-complex_sum(COMPLEX_TYPE a, COMPLEX_TYPE b);
+complex_sum (COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
-complex_sub(COMPLEX_TYPE a, COMPLEX_TYPE b);
+complex_sub (COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
-complex_mult(COMPLEX_TYPE a, COMPLEX_TYPE b);
+complex_mult (COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
-complex_mult_r(COMPLEX_TYPE a, REAL_TYPE r);
+complex_mult_r (COMPLEX_TYPE a, REAL_TYPE r);
 
 COMPLEX_TYPE
-complex_div(COMPLEX_TYPE a, COMPLEX_TYPE b);
+complex_div (COMPLEX_TYPE a, COMPLEX_TYPE b);
 
 COMPLEX_TYPE
-complex_div_r(COMPLEX_TYPE a, REAL_TYPE r);
+complex_div_r (COMPLEX_TYPE a, REAL_TYPE r);
 
 COMPLEX_TYPE
-fix_value(COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r, REAL_TYPE max_i);
+fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
+           REAL_TYPE max_i);
 
-unsigned int
-log2_64(uint64_t value);
+unsigned int log2_64 (uint64_t value);
 
 #endif
