@@ -46,6 +46,10 @@ static PyObject *doki_registry_density (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_create (PyObject *self, PyObject *args);
 
+static PyObject *doki_funmatrix_identity (PyObject *self, PyObject *args);
+
+static PyObject *doki_funmatrix_statezero (PyObject *self, PyObject *args);
+
 static PyObject *doki_funmatrix_hadamard (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_addcontrol (PyObject *self, PyObject *args);
@@ -97,6 +101,12 @@ static PyMethodDef DokiMethods[] = {
     "Get the density matrix" },
   { "funmatrix_create", doki_funmatrix_create, METH_VARARGS,
     "Create a functional matrix from a matrix" },
+  { "funmatrix_identity", doki_funmatrix_identity, METH_VARARGS,
+    "Create an identity functional matrix of the specified number "
+    "of qubits" },
+  { "funmatrix_statezero", doki_funmatrix_statezero, METH_VARARGS,
+    "Create a functional matrix representing the density matrix of "
+    "a quantum system of n qubits at state zero" },
   { "funmatrix_hadamard", doki_funmatrix_hadamard, METH_VARARGS,
     "Create a functional matrix from a Hadamard gate of the specified number "
     "of qubits" },
@@ -1449,6 +1459,25 @@ doki_funmatrix_hadamard (PyObject *self, PyObject *args)
       return NULL;
     }
   funmatrix = Hadamard (num_qubits);
+
+  return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_statezero (PyObject *self, PyObject *args)
+{
+  unsigned int num_qubits;
+  FunctionalMatrix *funmatrix;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "Ip", &num_qubits, &debug_enabled))
+    {
+      PyErr_SetString (DokiError,
+                       "Syntax: funmatrix_statezero(num_qubits, verbose)");
+      return NULL;
+    }
+  funmatrix = StateZero (num_qubits);
 
   return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
