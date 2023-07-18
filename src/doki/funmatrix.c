@@ -256,20 +256,16 @@ matmul (FunctionalMatrix *a, FunctionalMatrix *b)
 {
   FunctionalMatrix *pFM = NULL;
 
-  /* if the dimensions allign (uxv * vxw) */
-  if (a->c == b->r)
+  pFM = (FunctionalMatrix *)malloc (sizeof (FunctionalMatrix));
+  if (pFM != NULL)
     {
-      pFM = (FunctionalMatrix *)malloc (sizeof (FunctionalMatrix));
-      if (pFM != NULL)
-        {
-          pFM->r = a->r;
-          pFM->c = b->c;
-          pFM->s = COMPLEX_ONE;
-          pFM->A = a;
-          pFM->B = b;
-          pFM->op = 2;
-          pFM->simple = 0;
-        }
+      pFM->r = a->r;
+      pFM->c = b->c;
+      pFM->s = COMPLEX_ONE;
+      pFM->A = a;
+      pFM->B = b;
+      pFM->op = 2;
+      pFM->simple = 0;
     }
 
   return pFM;

@@ -1779,6 +1779,12 @@ doki_funmatrix_matmul (PyObject *self, PyObject *args)
     }
   matrix2 = (FunctionalMatrix *)raw_matrix2;
 
+  /* if the dimensions allign (uxv * vxw) */
+  if (matrix1->c != matrix2->r)
+    {
+      PyErr_SetString (DokiError, "Shapes not alligned");
+      return NULL;
+    }
   result = matmul (matrix1, matrix2);
   if (result == NULL)
     {
