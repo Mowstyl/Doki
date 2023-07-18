@@ -1417,6 +1417,25 @@ doki_funmatrix_create (PyObject *self, PyObject *args)
 }
 
 static PyObject *
+doki_funmatrix_identity (PyObject *self, PyObject *args)
+{
+  unsigned int num_qubits;
+  FunctionalMatrix *funmatrix;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "Ip", &num_qubits, &debug_enabled))
+    {
+      PyErr_SetString (DokiError,
+                       "Syntax: funmatrix_identity(num_qubits, verbose)");
+      return NULL;
+    }
+  funmatrix = Identity (num_qubits);
+
+  return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
+}
+
+static PyObject *
 doki_funmatrix_hadamard (PyObject *self, PyObject *args)
 {
   unsigned int num_qubits;
@@ -1429,7 +1448,7 @@ doki_funmatrix_hadamard (PyObject *self, PyObject *args)
                        "Syntax: funmatrix_hadamard(num_qubits, verbose)");
       return NULL;
     }
-  funmatrix = H (num_qubits);
+  funmatrix = Hadamard (num_qubits);
 
   return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);

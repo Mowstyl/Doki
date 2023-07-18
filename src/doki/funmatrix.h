@@ -127,6 +127,22 @@ FunctionalMatrix *partial_trace (FunctionalMatrix *m, int elem);
 __attribute__ ((const))
 #endif
 COMPLEX_TYPE
+_IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                   NATURAL_TYPE unused1 __attribute__ ((unused)),
+				   NATURAL_TYPE unused2 __attribute__ ((unused)),
+				   void *unused3 __attribute__ ((unused))
+#else
+                   NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+				   );
+
+FunctionalMatrix *Identity (int n);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+COMPLEX_TYPE
 _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused __attribute__ ((unused)),
@@ -137,7 +153,7 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 
 FunctionalMatrix *Walsh (int n);
 
-FunctionalMatrix *H (int n);
+FunctionalMatrix *Hadamard (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((pure))

@@ -450,6 +450,32 @@ NATURAL_TYPE
 columns (FunctionalMatrix *m) { return m->c; }
 
 COMPLEX_TYPE
+_IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                   NATURAL_TYPE unused1 __attribute__ ((unused)),
+				   NATURAL_TYPE unused2 __attribute__ ((unused)),
+				   void *unused3 __attribute__ ((unused))
+#else
+                   NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+				   )
+{
+  return complex_init (i == j, 0);
+}
+
+FunctionalMatrix *
+Identity (int n)
+{
+  FunctionalMatrix *pFM;
+  NATURAL_TYPE size;
+
+  size = 2 << (n - 1); // 2^n
+  pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, 1);
+
+  return pFM;
+}
+
+COMPLEX_TYPE
 _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused __attribute__ ((unused)),
@@ -505,7 +531,7 @@ Walsh (int n)
 }
 
 FunctionalMatrix *
-H (int n)
+Hadamard (int n)
 {
   FunctionalMatrix *pFM;
   NATURAL_TYPE size;
