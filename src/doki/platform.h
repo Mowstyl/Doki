@@ -78,52 +78,53 @@
  *  Complex number type used in Doki. May vary depending on the compiler.
  */
 
-/** \fn COMPLEX_TYPE complex_init(double real, double imag);
+/** \def COMPLEX_INIT(real, imag);
  *  \brief Build a complex number with specified real and imaginary parts.
  *  \param real The real part as a double.
  *  \param imag The imaginary part as a double.
  *  \return The specified complex number.
  */
 
-/** \fn COMPLEX_TYPE complex_sum(COMPLEX_TYPE a, COMPLEX_TYPE b);
+/** \def COMPLEX_ADD(a, b);
  *  \brief Calculate a + b, where a and b are complex numbers.
  *  \param a The first operand.
  *  \param b The second operand.
  *  \return The result of a + b.
  */
 
-/** \fn COMPLEX_TYPE complex_sub(COMPLEX_TYPE a, COMPLEX_TYPE b);
+/** \def COMPLEX_SUB(a, b);
  *  \brief Calculate a - b, where a and b are complex numbers.
  *  \param a The first operand.
  *  \param b The second operand.
  *  \return The result of a - b.
  */
 
-/** \fn COMPLEX_TYPE complex_mult(COMPLEX_TYPE a, COMPLEX_TYPE b);
+/** \def COMPLEX_MULT(a, b);
  *  \brief Calculate a * b, where a and b are complex numbers.
  *  \param a The first operand.
  *  \param b The second operand.
  *  \return The result of a * b.
  */
 
-/** \fn COMPLEX_TYPE complex_mult_r(COMPLEX_TYPE a, REAL_TYPE r);
+/** \def COMPLEX_MULT_R(a, r);
  *  \brief Calculate a * r, where a is a complex number and r is real.
  *  \param a The first operand (complex number).
- *  \param b The second operand (real number).
+ *  \param r The second operand (real number).
  *  \return The result of a * r.
  */
 
-/** \fn COMPLEX_TYPE complex_div_r(COMPLEX_TYPE a, COMPLEX_TYPE b);
- *  \brief Calculate a / b, where a and b are complex numbers.
+/** \def COMPLEX_DIV(res, a, b);
+ *  \brief Calculate res <- a / b, where a and b are complex numbers.
+ *  \param res The variable that will store the result.
  *  \param a The dividend.
- *  \param r The divisor.
+ *  \param b The divisor.
  *  \return The result of a / b.
  */
 
-/** \fn COMPLEX_TYPE complex_div_r(COMPLEX_TYPE a, REAL_TYPE r);
+/** \def COMPLEX_DIV_R(COMPLEX_TYPE a, REAL_TYPE r);
  *  \brief Calculate a / r, where a is a complex number and r is real.
- *  \param a The dividend.
- *  \param r The divisor.
+ *  \param a The dividend (complex number).
+ *  \param r The divisor (real number).
  *  \return The result of a / r.
  */
 
@@ -133,9 +134,15 @@
  *  \return A complex number in said intervals.
  */
 
+/** \fn unsigned int log2_64 (uint64_t value);
+ *  \brief Calculates the logarithm base 2 of value.
+ *  \param a The integer number to calculate its log2.
+ *  \return The log2 of value.
+ */
+
 #pragma once
-#ifndef __PLATFORM_H
-#define __PLATFORM_H
+#ifndef PLATFORM_H_
+#define PLATFORM_H_
 
 #include <complex.h>
 #include <limits.h>
@@ -242,28 +249,61 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #define MAX_NUM_QUBITS log2_64 (NATURAL_MAX)
 
 /**
- * complex_init
+ * Since VS compiler does not fully comply with C99 standard
+ * we have to define a coulple of functions regarding complex
+ * numbers.
  */
-COMPLEX_TYPE
-complex_init (REAL_TYPE real, REAL_TYPE imag);
+#ifndef _MSC_VER
+#define COMPLEX_INIT(real, imag) real + I * imag
+#else
+#define COMPLEX_INIT(real, imag) (COMPLEX_TYPE) { real, imag }
+#endif
 
-COMPLEX_TYPE
-complex_sum (COMPLEX_TYPE a, COMPLEX_TYPE b);
+#ifndef _MSC_VER
+#define COMPLEX_ADD(a, b) a + b
+#else
+#define COMPLEX_ADD(a, b) (COMPLEX_TYPE) { RE (a) + RE (b), IM (a) + IM (b) }
+#endif
 
-COMPLEX_TYPE
-complex_sub (COMPLEX_TYPE a, COMPLEX_TYPE b);
+#ifndef _MSC_VER
+#define COMPLEX_SUB(a, b) a - b
+#else
+#define COMPLEX_SUB(a, b) (COMPLEX_TYPE) { RE (a) - RE (b), IM (a) - IM (b) }
+#endif
 
-COMPLEX_TYPE
-complex_mult (COMPLEX_TYPE a, COMPLEX_TYPE b);
+#ifndef _MSC_VER
+#define COMPLEX_MULT(a, b) a * b
+#else
+#define COMPLEX_MULT(a, b) (COMPLEX_TYPE) { RE (a) * RE (b) - IM (a) * IM (b), \
+                                            RE (a) * IM (b) + RE (b) * IM (a) }
+#endif
 
-COMPLEX_TYPE
-complex_mult_r (COMPLEX_TYPE a, REAL_TYPE r);
+#ifndef _MSC_VER
+#define COMPLEX_MULT_R(a, r) a * r
+#else
+#define COMPLEX_MULT_R(a, r) (COMPLEX_TYPE) { RE (a) * r, IM (a) * r }
+#endif
 
-COMPLEX_TYPE
-complex_div (COMPLEX_TYPE a, COMPLEX_TYPE b);
+#ifndef _MSC_VER
+#define COMPLEX_DIV(res, a, b) res = a / b
+#else
+#define COMPLEX_DIV(res, a, b) \
+  do { \
+    REAL_TYPE ar = RE (a), \
+              ai = IM (a), \
+              br = RE (b), \
+              bi = IM (b); \
+    REAL_TYPE divi = br * br + bi * bi; \
+    res = (COMPLEX_TYPE) { (ar * br + ai * bi) / divi, \
+                           (ai * br - ar * bi) / divi }; \
+  } while(0)
+#endif
 
-COMPLEX_TYPE
-complex_div_r (COMPLEX_TYPE a, REAL_TYPE r);
+#ifndef _MSC_VER
+#define COMPLEX_DIV_R(a, r) a / r
+#else
+#define COMPLEX_DIV_R(a, r) (COMPLEX_TYPE) { RE (a) / r, IM (a) / r }
+#endif
 
 COMPLEX_TYPE
 fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
@@ -271,4 +311,4 @@ fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
 
 unsigned int log2_64 (uint64_t value);
 
-#endif
+#endif /* PLATFORM_H_ */

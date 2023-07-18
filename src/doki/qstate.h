@@ -16,8 +16,9 @@
  *  A list of complex number arrays (chunks).
  */
 
-#ifndef __QSTATE_H
-#define __QSTATE_H
+#pragma once
+#ifndef QSTATE_H_
+#define QSTATE_H_
 
 #include "platform.h"
 
@@ -67,4 +68,4 @@ void state_set (struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
 COMPLEX_TYPE
 state_get (struct state_vector *this, NATURAL_TYPE i);
 
-#endif
+#endif /* QSTATE_H_ */

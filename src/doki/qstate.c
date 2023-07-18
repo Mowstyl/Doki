@@ -132,8 +132,7 @@ state_set (struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value)
 COMPLEX_TYPE
 state_get (struct state_vector *this, NATURAL_TYPE i)
 {
-  COMPLEX_TYPE val;
-  val = complex_div_r (
+  COMPLEX_TYPE val = COMPLEX_DIV_R (
       this->vector[i / COMPLEX_ARRAY_SIZE][i % COMPLEX_ARRAY_SIZE],
       this->norm_const);
   return fix_value (val, -1, -1, 1, 1);

@@ -16,8 +16,9 @@
  *  A list of int arrays (chunks).
  */
 
-#ifndef __ARRAYLIST_H
-#define __ARRAYLIST_H
+#pragma once
+#ifndef ARRAYLIST_H_
+#define ARRAYLIST_H_
 
 #include "platform.h"
 
@@ -40,4 +41,4 @@ void alist_set (struct array_list_e *this, NATURAL_TYPE i, NATURAL_TYPE value);
 NATURAL_TYPE
 alist_get (struct array_list_e *this, NATURAL_TYPE i);
 
-#endif
+#endif /* ARRAYLIST_H_ */

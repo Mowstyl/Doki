@@ -1,5 +1,6 @@
-#ifndef __QGATE_H
-#define __QGATE_H
+#pragma once
+#ifndef QGATE_H_
+#define QGATE_H_
 
 #include "qstate.h"
 
@@ -13,4 +14,4 @@ struct qgate
   COMPLEX_TYPE **matrix;
 };
 
-#endif
+#endif /* QGATE_H_ */

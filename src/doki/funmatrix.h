@@ -1,5 +1,6 @@
-#ifndef __FUNMATRIX_H
-#define __FUNMATRIX_H
+#pragma once
+#ifndef FUNMATRIX_H_
+#define FUNMATRIX_H_
 
 #include "platform.h"
 #include <complex.h>
@@ -130,14 +131,30 @@ COMPLEX_TYPE
 _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                    NATURAL_TYPE unused1 __attribute__ ((unused)),
-				   NATURAL_TYPE unused2 __attribute__ ((unused)),
-				   void *unused3 __attribute__ ((unused))
+                   NATURAL_TYPE unused2 __attribute__ ((unused)),
+                   void *unused3 __attribute__ ((unused))
 #else
                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
 #endif
-				   );
+                  );
 
 FunctionalMatrix *Identity (int n);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+COMPLEX_TYPE
+_StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                    NATURAL_TYPE unused1 __attribute__ ((unused)),
+                    NATURAL_TYPE unused2 __attribute__ ((unused)),
+                    void *unused3 __attribute__ ((unused))
+#else
+                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+                   );
+
+FunctionalMatrix *StateZero (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -209,4 +226,4 @@ __attribute__ ((pure))
 char *
 FM_toString (FunctionalMatrix *a);
 
-#endif
+#endif /* FUNMATRIX_H_ */

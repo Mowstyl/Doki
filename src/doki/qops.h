@@ -1,5 +1,6 @@
-#ifndef __QOPS_H
-#define __QOPS_H
+#pragma once
+#ifndef QOPS_H_
+#define QOPS_H_
 
 #include "arraylist.h"
 #include "funmatrix.h"
@@ -58,4 +59,4 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
 
 FunctionalMatrix *densityMat (struct state_vector *state);
 
-#endif
+#endif /* QOPS_H_ */

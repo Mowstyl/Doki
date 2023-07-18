@@ -86,7 +86,7 @@ join (struct state_vector *r, struct state_vector *s1, struct state_vector *s2)
         {
           new_index = i * s2->size + j;
           o2 = state_get (s2, j);
-          state_set (r, new_index, complex_mult (o1, o2));
+          state_set (r, new_index, COMPLEX_MULT (o1, o2));
         }
     }
 
@@ -339,7 +339,7 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
       // If there has been any error in this thread, we skip
       curr_id = alist_get (not_copy, i);
       reg_index = curr_id;
-      sum = complex_init (0, 0);
+      sum = COMPLEX_INIT (0, 0);
       // We have gate->size elements to add in sum
       for (j = 0; j < gate->size; j++)
         {
@@ -364,7 +364,7 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
                   reg_index &= ~(NATURAL_ONE << targets[k]);
                 }
             }
-          sum = complex_sum (sum, complex_mult (state_get (state, reg_index),
+          sum = COMPLEX_ADD (sum, COMPLEX_MULT (state_get (state, reg_index),
                                                 gate->matrix[row][j]));
         }
       aux_const += pow (RE (sum), 2) + pow (IM (sum), 2);
@@ -397,7 +397,7 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
   // printf("state[%lld] = " COMPLEX_STRING_FORMAT "\n", i,
   // COMPLEX_STRING(elem_i)); printf("state[%lld] = " COMPLEX_STRING_FORMAT
   // "\n", j, COMPLEX_STRING(elem_i));
-  result = complex_mult (elem_i, conj (elem_j));
+  result = COMPLEX_MULT (elem_i, conj (elem_j));
   // printf("result = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(result));
 
   return result;

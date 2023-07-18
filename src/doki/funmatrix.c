@@ -43,7 +43,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
   int result = 1;
   COMPLEX_TYPE aux1 = COMPLEX_ZERO, aux2 = COMPLEX_ZERO;
 
-  *sol = complex_init (NAN, NAN);
+  *sol = COMPLEX_INIT (NAN, NAN);
   if (i < a->r && j < a->c)
     {
       if (a->transpose)
@@ -64,7 +64,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
             case 0: /* Matrix addition */
               if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
                 {
-                  *sol = complex_sum (aux1, aux2);
+                  *sol = COMPLEX_ADD (aux1, aux2);
                 }
               else
                 {
@@ -75,7 +75,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
             case 1: /* Matrix subtraction */
               if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
                 {
-                  *sol = complex_sub (aux1, aux2);
+                  *sol = COMPLEX_SUB (aux1, aux2);
                 }
               else
                 {
@@ -90,7 +90,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
                   if (getitem (a->A, i, k, &aux1)
                       && getitem (a->B, k, j, &aux2))
                     {
-                      *sol = complex_sum (*sol, complex_mult (aux1, aux2));
+                      *sol = COMPLEX_ADD (*sol, COMPLEX_MULT (aux1, aux2));
                     }
                   else
                     {
@@ -103,7 +103,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
             case 3: /* Entity-wise multiplication */
               if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
                 {
-                  *sol = complex_mult (aux1, aux2);
+                  *sol = COMPLEX_MULT (aux1, aux2);
                 }
               else
                 {
@@ -116,7 +116,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
               if (getitem (a->A, i / a->B->r, j / a->B->c, &aux1)
                   && getitem (a->B, i % a->B->r, j % a->B->c, &aux2))
                 {
-                  *sol = complex_mult (aux1, aux2);
+                  *sol = COMPLEX_MULT (aux1, aux2);
                 }
               else
                 {
@@ -148,7 +148,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
 
   if (result)
     {
-      *sol = complex_mult (*sol, a->s);
+      *sol = COMPLEX_MULT (*sol, a->s);
     }
 
   return result;
@@ -216,7 +216,7 @@ mprod (COMPLEX_TYPE r, FunctionalMatrix *a)
       pFM->r = a->r;
       pFM->c = a->c;
       pFM->f = a->f;
-      pFM->s = complex_mult (a->s, r);
+      pFM->s = COMPLEX_MULT (a->s, r);
       pFM->A = a->A;
       pFM->B = a->B;
       pFM->op = a->op;
@@ -239,7 +239,7 @@ mdiv (COMPLEX_TYPE r, FunctionalMatrix *a)
       pFM->r = a->r;
       pFM->c = a->c;
       pFM->f = a->f;
-      pFM->s = complex_div (a->s, r);
+      COMPLEX_DIV (pFM->s, a->s, r);
       pFM->A = a->A;
       pFM->B = a->B;
       pFM->op = a->op;
@@ -415,7 +415,7 @@ _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
           && getitem (me->m, _GetElemIndex (1, i, me->e),
                       _GetElemIndex (1, j, me->e), &aux))
         {
-          sol = complex_sum (sol, aux);
+          sol = COMPLEX_ADD (sol, aux);
         }
     }
 
@@ -453,14 +453,14 @@ COMPLEX_TYPE
 _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                    NATURAL_TYPE unused1 __attribute__ ((unused)),
-				   NATURAL_TYPE unused2 __attribute__ ((unused)),
-				   void *unused3 __attribute__ ((unused))
+                   NATURAL_TYPE unused2 __attribute__ ((unused)),
+                   void *unused3 __attribute__ ((unused))
 #else
                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
 #endif
-				   )
+                  )
 {
-  return complex_init (i == j, 0);
+  return COMPLEX_INIT (i == j, 0);
 }
 
 FunctionalMatrix *
@@ -471,6 +471,32 @@ Identity (int n)
 
   size = 2 << (n - 1); // 2^n
   pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, 1);
+
+  return pFM;
+}
+
+COMPLEX_TYPE
+_StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                   NATURAL_TYPE unused1 __attribute__ ((unused)),
+                   NATURAL_TYPE unused2 __attribute__ ((unused)),
+                   void *unused3 __attribute__ ((unused))
+#else
+                   NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+                  )
+{
+  return COMPLEX_INIT (i == 0 && j == 0, 0);
+}
+
+FunctionalMatrix *
+StateZero (int n)
+{
+  FunctionalMatrix *pFM;
+  NATURAL_TYPE size;
+
+  size = 2 << (n - 1); // 2^n
+  pFM = new_FunctionalMatrix (size, size, &_StateZeroFunction, 1);
 
   return pFM;
 }
@@ -515,7 +541,7 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
       number /= sqrt (size);
     }
 
-  return complex_init (number, 0);
+  return COMPLEX_INIT (number, 0);
 }
 
 FunctionalMatrix *
@@ -557,7 +583,7 @@ _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
   FunctionalMatrix *U = (FunctionalMatrix *)RawU;
 
   if (i < rows (U) || j < columns (U))
-    val = complex_init (i == j, 0);
+    val = COMPLEX_INIT (i == j, 0);
   else
     result = getitem (U, i - rows (U), j - columns (U), &val);
 

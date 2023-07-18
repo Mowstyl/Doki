@@ -1,111 +1,5 @@
 #include "platform.h"
 
-COMPLEX_TYPE
-complex_init (REAL_TYPE real, REAL_TYPE imag)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler we can use this
-  return real + I * imag;
-#else
-  // When using VS compiler we need an aux variable
-  COMPLEX_TYPE aux = { real, imag };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_sum (COMPLEX_TYPE a, COMPLEX_TYPE b)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, addition is a native operation
-  return a + b;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number addition
-  COMPLEX_TYPE aux = { RE (a) + RE (b), IM (a) + IM (b) };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_sub (COMPLEX_TYPE a, COMPLEX_TYPE b)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, addition is a native operation
-  return a - b;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number addition
-  COMPLEX_TYPE aux = { RE (a) - RE (b), IM (a) - IM (b) };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_mult (COMPLEX_TYPE a, COMPLEX_TYPE b)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, product is a native operation
-  return a * b;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number product
-  COMPLEX_TYPE aux = { RE (a) * RE (b) - IM (a) * IM (b),
-                       RE (a) * IM (b) + RE (b) * IM (a) };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_mult_r (COMPLEX_TYPE a, REAL_TYPE r)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, product is a native operation
-  return a * r;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number product
-  COMPLEX_TYPE aux = { RE (a) * r, IM (a) * r };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_div (COMPLEX_TYPE a, COMPLEX_TYPE b)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, product is a native operation
-  return a / b;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number product
-  REAL_TYPE ar, ai, br, bi;
-  REAL_TYPE divi;
-
-  ar = RE (a);
-  ai = IM (a);
-  br = RE (b);
-  bi = IM (b);
-  divi = br * br + bi * bi;
-  COMPLEX_TYPE aux
-      = { (ar * br + ai * bi) / divi, (ai * br - ar * bi) / divi };
-  return aux;
-#endif
-}
-
-COMPLEX_TYPE
-complex_div_r (COMPLEX_TYPE a, REAL_TYPE r)
-{
-#ifndef _MSC_VER
-  // When not using VS compiler, product is a native operation
-  return a / r;
-#else
-  // Since VS compiler does not fully comply with C99 standard
-  // we have to define complex number product
-  COMPLEX_TYPE aux = { RE (a) / r, IM (a) / r };
-  return aux;
-#endif
-}
 
 COMPLEX_TYPE
 fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
@@ -134,7 +28,7 @@ fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
       aux_i = min_i;
     }
 
-  return complex_init (aux_r, aux_i);
+  return COMPLEX_INIT (aux_r, aux_i);
 }
 
 /* log2 from stackoverflow

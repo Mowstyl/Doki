@@ -3,6 +3,7 @@
 #include "qgate.h"
 #include "qops.h"
 #include "qstate.h"
+#include <complex.h>
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <omp.h>
@@ -457,16 +458,15 @@ doki_gate_new (PyObject *self, PyObject *args)
           raw_val = PyList_GetItem (row, j);
           if (PyComplex_Check (raw_val))
             {
-              val = complex_init (PyComplex_RealAsDouble (raw_val),
-                                  PyComplex_ImagAsDouble (raw_val));
+              val = COMPLEX_INIT (PyComplex_RealAsDouble (raw_val), PyComplex_ImagAsDouble (raw_val));
             }
           else if (PyFloat_Check (raw_val))
             {
-              val = complex_init (PyFloat_AsDouble (raw_val), 0.0);
+              val = COMPLEX_INIT (PyFloat_AsDouble (raw_val), 0.0);
             }
           else if (PyLong_Check (raw_val))
             {
-              val = complex_init ((double)PyLong_AsLong (raw_val), 0.0);
+              val = COMPLEX_INIT ((double)PyLong_AsLong (raw_val), 0.0);
             }
           else
             {
@@ -568,8 +568,8 @@ doki_registry_get (PyObject *self, PyObject *args)
         {
           printf ("[DEBUG] phase = " REAL_STRING_FORMAT "\n", phase);
         }
-      aux = complex_init (COS (phase), -SIN (phase));
-      val = complex_mult (val, aux);
+      aux = COMPLEX_INIT (COS (phase), -SIN (phase));
+      val = COMPLEX_MULT (val, aux);
     }
   result = PyComplex_FromDoubles (RE (val), IM (val));
 
@@ -586,7 +586,7 @@ custom_state_init_py (PyObject *values, struct state_vector *state)
   for (i = 0; i < state->size; i++)
     {
       aux = PyList_GetItem (values, i);
-      val = complex_init (PyComplex_RealAsDouble (aux),
+      val = COMPLEX_INIT (PyComplex_RealAsDouble (aux),
                           PyComplex_ImagAsDouble (aux));
       state_set (state, i, val);
     }
@@ -602,7 +602,7 @@ custom_state_init_np (PyObject *values, struct state_vector *state)
   for (i = 0; i < state->size; i++)
     {
       aux = PyArray_GETITEM (values, PyArray_GETPTR1 (values, i));
-      val = complex_init (PyComplex_RealAsDouble (aux),
+      val = COMPLEX_INIT (PyComplex_RealAsDouble (aux),
                           PyComplex_ImagAsDouble (aux));
       state_set (state, i, val);
     }
@@ -1389,16 +1389,16 @@ doki_funmatrix_create (PyObject *self, PyObject *args)
           raw_val = PyList_GetItem (row, j);
           if (PyComplex_Check (raw_val))
             {
-              val = complex_init (PyComplex_RealAsDouble (raw_val),
+              val = COMPLEX_INIT (PyComplex_RealAsDouble (raw_val),
                                   PyComplex_ImagAsDouble (raw_val));
             }
           else if (PyFloat_Check (raw_val))
             {
-              val = complex_init (PyFloat_AsDouble (raw_val), 0.0);
+              val = COMPLEX_INIT (PyFloat_AsDouble (raw_val), 0.0);
             }
           else if (PyLong_Check (raw_val))
             {
-              val = complex_init ((double)PyLong_AsLong (raw_val), 0.0);
+              val = COMPLEX_INIT ((double)PyLong_AsLong (raw_val), 0.0);
             }
           else
             {
@@ -1636,16 +1636,16 @@ doki_funmatrix_scalar_mul (PyObject *self, PyObject *args)
 
   if (PyComplex_Check (raw_scalar))
     {
-      scalar = complex_init (PyComplex_RealAsDouble (raw_scalar),
+      scalar = COMPLEX_INIT (PyComplex_RealAsDouble (raw_scalar),
                              PyComplex_ImagAsDouble (raw_scalar));
     }
   else if (PyFloat_Check (raw_scalar))
     {
-      scalar = complex_init (PyFloat_AsDouble (raw_scalar), 0.0);
+      scalar = COMPLEX_INIT (PyFloat_AsDouble (raw_scalar), 0.0);
     }
   else if (PyLong_Check (raw_scalar))
     {
-      scalar = complex_init ((double)PyLong_AsLong (raw_scalar), 0.0);
+      scalar = COMPLEX_INIT ((double)PyLong_AsLong (raw_scalar), 0.0);
     }
   else
     {
@@ -1690,16 +1690,16 @@ doki_funmatrix_scalar_div (PyObject *self, PyObject *args)
 
   if (PyComplex_Check (raw_scalar))
     {
-      scalar = complex_init (PyComplex_RealAsDouble (raw_scalar),
+      scalar = COMPLEX_INIT (PyComplex_RealAsDouble (raw_scalar),
                              PyComplex_ImagAsDouble (raw_scalar));
     }
   else if (PyFloat_Check (raw_scalar))
     {
-      scalar = complex_init (PyFloat_AsDouble (raw_scalar), 0.0);
+      scalar = COMPLEX_INIT (PyFloat_AsDouble (raw_scalar), 0.0);
     }
   else if (PyLong_Check (raw_scalar))
     {
-      scalar = complex_init ((double)PyLong_AsLong (raw_scalar), 0.0);
+      scalar = COMPLEX_INIT ((double)PyLong_AsLong (raw_scalar), 0.0);
     }
   else
     {
@@ -2009,7 +2009,7 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
           PyErr_SetString (DokiError, "Failed to get matrix element");
           return NULL;
         }
-      result = complex_sum (result, aux);
+      result = COMPLEX_ADD (result, aux);
     }
 
   return PyComplex_FromDoubles (RE (result), IM (result));
