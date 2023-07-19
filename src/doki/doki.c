@@ -253,11 +253,15 @@ doki_funmatrix_destroy (PyObject *capsule)
   FunctionalMatrix *matrix;
   void *raw_matrix;
 
+  printf("Me muedro!\n");
   raw_matrix = PyCapsule_GetPointer (capsule, "qsimov.doki.funmatrix");
   if (raw_matrix != NULL)
     {
       matrix = (FunctionalMatrix *)raw_matrix;
-      free (matrix);
+      //if (matrix != NULL) {
+      //  FM_destroy(matrix);
+      //}
+      //free (matrix);
     }
 }
 

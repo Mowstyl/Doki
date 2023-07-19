@@ -20,10 +20,13 @@ new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
 
   if (pFM != NULL)
     {
+      pFM->A = NULL;
+      pFM->B = NULL;
       pFM->r = n_rows;
       pFM->c = n_columns;
       pFM->f = fun;
       pFM->s = COMPLEX_ONE;
+      pFM->op = -1;
       pFM->transpose = 0;
       pFM->conjugate = 0;
       pFM->simple = 1;
@@ -59,6 +62,7 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
         }
       else
         {
+          intmax_t auxilio;
           switch (a->op)
             {
             case 0: /* Matrix addition */
@@ -113,9 +117,23 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
               break;
 
             case 4: /* Kronecker product */
+              printf("Omae ");
+              auxilio = a->B->c;
+              printf("%lld ", auxilio);
+              auxilio = a->B->r;
+              printf("%lld ", auxilio);
+              printf("wa ");
+              printf("%p ", a->A);
+              printf("%p ", a->B);
+              printf("mou ");
+              printf("%p ", &aux1);
+              printf("%p ", &aux2);
+              fflush(stdout);
               if (getitem (a->A, i / a->B->r, j / a->B->c, &aux1)
                   && getitem (a->B, i % a->B->r, j % a->B->c, &aux2))
                 {
+                  printf("Shindeiru - ");
+                  fflush(stdout);
                   *sol = COMPLEX_MULT (aux1, aux2);
                 }
               else
@@ -123,6 +141,8 @@ getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
                   printf ("Error while operating!\n");
                   result = 0;
                 }
+              printf("NANI???\n");
+              fflush(stdout);
               break;
 
             default:
@@ -163,14 +183,14 @@ madd (FunctionalMatrix *a, FunctionalMatrix *b)
   /* if the dimensions allign (nxm .* nxm)*/
   if (a->r == b->r && a->c == b->c)
     {
-      pFM = (FunctionalMatrix *)malloc (sizeof (FunctionalMatrix));
+      pFM = MALLOC_TYPE(1, FunctionalMatrix);
       if (pFM != NULL)
         {
           pFM->r = a->r;
           pFM->c = a->c;
           pFM->s = COMPLEX_ONE;
-          pFM->A = a;
-          pFM->B = b;
+          pFM->A = FM_Clone(a);
+          pFM->B = FM_Clone(b);
           pFM->op = 0;
           pFM->simple = 0;
         }
@@ -188,15 +208,15 @@ msub (FunctionalMatrix *a, FunctionalMatrix *b)
   /* if the dimensions allign (nxm .* nxm)*/
   if (a->r == b->r && a->c == b->c)
     {
-      pFM = (FunctionalMatrix *)malloc (sizeof (FunctionalMatrix));
+      pFM = MALLOC_TYPE(1, FunctionalMatrix);
       if (pFM != NULL)
         {
           pFM->r = a->r;
           pFM->c = a->c;
           pFM->s = COMPLEX_ONE;
-          pFM->A = a;
-          pFM->B = b;
-          pFM->op = 0;
+          pFM->A = FM_Clone(a);
+          pFM->B = FM_Clone(b);
+          pFM->op = 1;
           pFM->simple = 0;
         }
     }
@@ -217,8 +237,8 @@ mprod (COMPLEX_TYPE r, FunctionalMatrix *a)
       pFM->c = a->c;
       pFM->f = a->f;
       pFM->s = COMPLEX_MULT (a->s, r);
-      pFM->A = a->A;
-      pFM->B = a->B;
+      pFM->A = FM_Clone(a->A);
+      pFM->B = FM_Clone(a->B);
       pFM->op = a->op;
       pFM->simple = a->simple;
       pFM->argv = a->argv;
@@ -240,8 +260,8 @@ mdiv (COMPLEX_TYPE r, FunctionalMatrix *a)
       pFM->c = a->c;
       pFM->f = a->f;
       COMPLEX_DIV (pFM->s, a->s, r);
-      pFM->A = a->A;
-      pFM->B = a->B;
+      pFM->A = FM_Clone(a->A);
+      pFM->B = FM_Clone(a->B);
       pFM->op = a->op;
       pFM->simple = a->simple;
       pFM->argv = a->argv;
@@ -262,8 +282,8 @@ matmul (FunctionalMatrix *a, FunctionalMatrix *b)
       pFM->r = a->r;
       pFM->c = b->c;
       pFM->s = COMPLEX_ONE;
-      pFM->A = a;
-      pFM->B = b;
+      pFM->A = FM_Clone(a);
+      pFM->B = FM_Clone(b);
       pFM->op = 2;
       pFM->simple = 0;
     }
@@ -285,8 +305,8 @@ ewmul (FunctionalMatrix *a, FunctionalMatrix *b)
           pFM->r = a->r;
           pFM->c = a->c;
           pFM->s = COMPLEX_ONE;
-          pFM->A = a;
-          pFM->B = b;
+          pFM->A = FM_Clone(a);
+          pFM->B = FM_Clone(b);
           pFM->op = 3;
           pFM->simple = 0;
         }
@@ -315,8 +335,8 @@ kron (FunctionalMatrix *a, FunctionalMatrix *b)
       pFM->r = a->r * b->r;
       pFM->c = a->c * b->c;
       pFM->s = COMPLEX_ONE;
-      pFM->A = a;
-      pFM->B = b;
+      pFM->A = FM_Clone(a);
+      pFM->B = FM_Clone(b);
       pFM->op = 4;
       pFM->simple = 0;
     }
@@ -337,12 +357,12 @@ transpose (FunctionalMatrix *m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->s = m->s;
-      pFM->A = m->A;
-      pFM->B = m->B;
+      pFM->A = FM_Clone(m->A);
+      pFM->B = FM_Clone(m->B);
       pFM->op = m->op;
       pFM->transpose = !m->transpose;
       pFM->conjugate = m->conjugate;
-      pFM->simple = 0;
+      pFM->simple = m->simple;
     }
 
   return pFM;
@@ -361,18 +381,18 @@ dagger (FunctionalMatrix *m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->s = m->s;
-      pFM->A = m->A;
-      pFM->B = m->B;
+      pFM->A = FM_Clone(m->A);
+      pFM->B = FM_Clone(m->B);
       pFM->op = m->op;
       pFM->transpose = !m->transpose;
       pFM->conjugate = !m->conjugate;
-      pFM->simple = 0;
+      pFM->simple = m->simple;
     }
 
   return pFM;
 }
 
-NATURAL_TYPE
+static NATURAL_TYPE
 _GetElemIndex (int value, NATURAL_TYPE position, int bit)
 {
   NATURAL_TYPE index = 0, aux = 1;
@@ -389,7 +409,7 @@ _GetElemIndex (int value, NATURAL_TYPE position, int bit)
   return index;
 }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -445,7 +465,7 @@ rows (FunctionalMatrix *m) { return m->r; }
 NATURAL_TYPE
 columns (FunctionalMatrix *m) { return m->c; }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                    NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -466,12 +486,12 @@ Identity (int n)
   NATURAL_TYPE size;
 
   size = 2 << (n - 1); // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, 1);
+  pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, NULL);
 
   return pFM;
 }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                    NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -492,12 +512,12 @@ StateZero (int n)
   NATURAL_TYPE size;
 
   size = 2 << (n - 1); // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_StateZeroFunction, 1);
+  pFM = new_FunctionalMatrix (size, size, &_StateZeroFunction, NULL);
 
   return pFM;
 }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused __attribute__ ((unused)),
@@ -532,7 +552,7 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
         }
     }
 
-  if (isHadamard)
+  if (*((int*)isHadamard))
     {
       number /= sqrt (size);
     }
@@ -545,9 +565,11 @@ Walsh (int n)
 {
   FunctionalMatrix *pFM;
   NATURAL_TYPE size;
+  int *isHadamard = MALLOC_TYPE(1, int);
 
+  *isHadamard = 1;
   size = 2 << (n - 1); // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, 0);
+  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard);
 
   return pFM;
 }
@@ -557,14 +579,16 @@ Hadamard (int n)
 {
   FunctionalMatrix *pFM;
   NATURAL_TYPE size;
+  int *isHadamard = MALLOC_TYPE(1, int);
 
+  *isHadamard = 1;
   size = 2 << (n - 1); // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, 1);
+  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard);
 
   return pFM;
 }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
              NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -597,7 +621,7 @@ CU (FunctionalMatrix *U)
   return new_FunctionalMatrix (rows (U) * 2, columns (U) * 2, &_CUFunction, U);
 }
 
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
 #ifndef _MSC_VER
             NATURAL_TYPE unused __attribute__ ((unused)),
@@ -617,7 +641,7 @@ CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE nrows, NATURAL_TYPE ncols)
   return new_FunctionalMatrix (nrows, ncols, &_CustomMat, matrix_2d);
 }
 
-int
+static int
 _bytes_added (int sprintfRe)
 {
   return (sprintfRe > 0) ? sprintfRe : 0;
@@ -706,4 +730,43 @@ FM_toString (FunctionalMatrix *a)
     }
 
   return text;
+}
+
+FunctionalMatrix *FM_Clone (FunctionalMatrix *src) {
+  FunctionalMatrix *clone;
+
+  if (src == NULL) {
+    return NULL;
+  }
+
+  clone = MALLOC_TYPE(1, FunctionalMatrix);
+  if (clone == NULL) {
+    printf("[ERROR] Could not allocate FM clone!\n");
+    return NULL;
+  }
+
+  clone->r = src->r;
+  clone->c = src->c;
+  clone->f = src->f;
+  clone->s = src->s;
+  clone->A = FM_Clone(src->A);
+  clone->B = FM_Clone(src->B);
+  clone->op = src->op;
+  clone->transpose = src->transpose;
+  clone->conjugate = src->conjugate;
+  clone->simple = src->simple;
+  clone->argv = src->argv;
+
+  return clone;
+}
+
+void FM_destroy (FunctionalMatrix *src) {
+  if (src->A != NULL) {
+    FM_destroy(src->A);
+    free(src->A);
+  }
+  if (src->B != NULL) {
+    FM_destroy(src->B);
+    free(src->B);
+  }
 }

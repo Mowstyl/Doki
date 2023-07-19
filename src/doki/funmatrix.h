@@ -29,8 +29,8 @@ struct FMatrix
       0 -> Matrix addition               A + B
       1 -> Matrix subtraction            A - B
       2 -> Matrix multiplication         A * B
-      3 -> Entity-wise multiplication    A.* B
-      4 -> Kronecker product             A⊗ B
+      3 -> Entity-wise multiplication    A .* B
+      4 -> Kronecker product             A ⊗ B
   */
   short op;
   /* Whether the matrix has to be transposed or not */
@@ -41,6 +41,8 @@ struct FMatrix
   short simple;
   /* Extra arguments to pass to the function f */
   void *argv;
+  /* Function that frees memory used by argv (if needed) */
+  void (*argv_free) (void *);
 };
 
 typedef struct FMatrix FunctionalMatrix;
@@ -105,13 +107,13 @@ columns (FunctionalMatrix *m);
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-NATURAL_TYPE
+static NATURAL_TYPE
 _GetElemIndex (int value, NATURAL_TYPE position, int bit);
 
 #ifndef _MSC_VER
 __attribute__ ((pure))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -127,7 +129,7 @@ FunctionalMatrix *partial_trace (FunctionalMatrix *m, int elem);
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                    NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -143,7 +145,7 @@ FunctionalMatrix *Identity (int n);
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
                     NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -159,7 +161,7 @@ FunctionalMatrix *StateZero (int n);
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #ifndef _MSC_VER
                 NATURAL_TYPE unused __attribute__ ((unused)),
@@ -175,7 +177,7 @@ FunctionalMatrix *Hadamard (int n);
 #ifndef _MSC_VER
 __attribute__ ((pure))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
              NATURAL_TYPE unused1 __attribute__ ((unused)),
@@ -190,7 +192,7 @@ FunctionalMatrix *CU (FunctionalMatrix *U);
 #ifndef _MSC_VER
 __attribute__ ((pure))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
 #ifndef _MSC_VER
             NATURAL_TYPE unused __attribute__ ((unused)),
@@ -209,7 +211,7 @@ FunctionalMatrix *CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE nrows,
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-int
+static int
 _bytes_added (int sprintfRe);
 
 /* Gets the size in memory */
@@ -225,5 +227,9 @@ __attribute__ ((pure))
 #endif
 char *
 FM_toString (FunctionalMatrix *a);
+
+FunctionalMatrix *FM_Clone (FunctionalMatrix *src);
+
+void FM_destroy (FunctionalMatrix *src);
 
 #endif /* FUNMATRIX_H_ */
