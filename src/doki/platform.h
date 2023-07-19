@@ -148,6 +148,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec (align (x))
@@ -222,9 +223,11 @@ static const unsigned int NATURAL_BITS = sizeof (NATURAL_TYPE) * 8 - 1;
 #ifndef _WIN32
 static const COMPLEX_TYPE COMPLEX_ZERO = 0;
 static const COMPLEX_TYPE COMPLEX_ONE = 1;
+static const COMPLEX_TYPE COMPLEX_NAN = NAN;
 #else
 static const COMPLEX_TYPE COMPLEX_ZERO = { 0, 0 };
 static const COMPLEX_TYPE COMPLEX_ONE = { 1, 0 };
+static const COMPLEX_TYPE COMPLEX_NAN = { NAN, NAN };
 #endif
 
 #define COMPLEX_STRING_FORMAT REAL_STRING_FORMAT "+" REAL_STRING_FORMAT "i"

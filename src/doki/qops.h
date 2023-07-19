@@ -2,6 +2,7 @@
 #ifndef QOPS_H_
 #define QOPS_H_
 
+#include <Python.h>
 #include "arraylist.h"
 #include "funmatrix.h"
 #include "qgate.h"
@@ -57,6 +58,6 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
              void *rawstate);
 
-FunctionalMatrix *densityMat (struct state_vector *state);
+struct FMatrix *densityMat (PyObject *state_capsule);
 
 #endif /* QOPS_H_ */

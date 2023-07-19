@@ -2,6 +2,8 @@
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <Python.h>
 
 #include "arraylist.h"
 #include "platform.h"
@@ -389,8 +391,12 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
              void *rawstate)
 {
-  struct state_vector *state = (struct state_vector *)rawstate;
   COMPLEX_TYPE elem_i, elem_j, result;
+  struct state_vector *state = (struct state_vector *) PyCapsule_GetPointer (rawstate, "qsimov.doki.state_vector");
+  if (state == NULL)
+    {
+      return COMPLEX_NAN;
+    }
 
   elem_i = state_get (state, i);
   elem_j = state_get (state, j);
@@ -403,15 +409,28 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
   return result;
 }
 
-FunctionalMatrix *
-densityMat (struct state_vector *state)
+struct FMatrix *
+densityMat (PyObject *state_capsule)
 {
-  FunctionalMatrix *dm = NULL;
+  struct FMatrix *dm = NULL;
+  struct state_vector *state = PyCapsule_GetPointer (state_capsule, "qsimov.doki.state_vector");
 
   if (state != NULL)
     {
       dm = new_FunctionalMatrix (state->size, state->size, &_densityFun,
-                                 state);
+                                 state_capsule, free_capsule, clone_capsule);
+      if (dm != NULL)
+        {
+          Py_INCREF(state_capsule);
+        }
+      else
+        {
+          errno = 1;
+        }
+    }
+  else
+    {
+      errno = 2;
     }
 
   return dm;

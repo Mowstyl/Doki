@@ -3,7 +3,9 @@
 #define FUNMATRIX_H_
 
 #include "platform.h"
+#include <stdbool.h>
 #include <complex.h>
+#include <Python.h>
 
 struct FMatrix
 {
@@ -22,9 +24,11 @@ struct FMatrix
   /* Pointer to matrix A in case an operation is going to be performed A op B
    */
   struct FMatrix *A;
+  PyObject *A_capsule;
   /* Pointer to matrix B in case an operation is going to be performed A op B
    */
   struct FMatrix *B;
+  PyObject *B_capsule;
   /* Operation to apply between the matrices.
       0 -> Matrix addition               A + B
       1 -> Matrix subtraction            A - B
@@ -34,75 +38,140 @@ struct FMatrix
   */
   short op;
   /* Whether the matrix has to be transposed or not */
-  short transpose;
+  bool transpose;
   /* Whether the matrix has to be complex conjugated or not */
-  short conjugate;
+  bool conjugate;
   /* Whether the matrix is simple or you have to perform an operation */
-  short simple;
+  bool simple;
   /* Extra arguments to pass to the function f */
   void *argv;
   /* Function that frees memory used by argv (if needed) */
   void (*argv_free) (void *);
+  /* Function that clones argv (if needed) */
+  void* (*argv_clone) (void *);
 };
-
-typedef struct FMatrix FunctionalMatrix;
 
 struct DMatrixForTrace
 {
   /* Density Matrix */
-  FunctionalMatrix *m;
+  struct FMatrix *m;
+  PyObject *m_capsule;
   /* Element to trace out */
   int e;
 };
 
-typedef struct DMatrixForTrace _MatrixElem;
+struct Matrix2D
+{
+  /* Matrix stored in an 2d array */
+  COMPLEX_TYPE *matrix2d;
+  /* Length of the array (#rows x #columns) */
+  NATURAL_TYPE length;
+  /* How many references are there to this object */
+  NATURAL_TYPE refcount;
+};
+
+static void free_matrixelem(void *raw_me);
+
+static void * clone_matrixelem(void *raw_me);
+
+static struct Matrix2D * new_matrix2d(COMPLEX_TYPE *matrix2d, NATURAL_TYPE length);
+
+static void free_matrix2d(void *raw_mat);
+
+static void * clone_matrix2d(void *raw_mat);
 
 /* Constructor */
-FunctionalMatrix *
+struct FMatrix *
 new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
                       COMPLEX_TYPE (*fun) (NATURAL_TYPE, NATURAL_TYPE,
                                            NATURAL_TYPE, NATURAL_TYPE, void *),
-                      void *argv);
+                      void *argv,
+                      void (*argv_free) (void *), void* (*argv_clone) (void *));
 
 /*
  * Get the element (i, j) from the matrix a, and return the result in
  * the address pointed by sol. If a 0 is returned, something went wrong.
  */
-int getitem (FunctionalMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
+int getitem (struct FMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
              COMPLEX_TYPE *sol);
 
-/* Addition */
-FunctionalMatrix *madd (FunctionalMatrix *a, FunctionalMatrix *b);
+/* Addition. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 2 -> Operands misalligned
+ * 3 -> First operand is NULL
+ * 4 -> Second operand is NULL
+ */
+struct FMatrix *madd (PyObject *raw_a, PyObject *raw_b);
 
-/* Subtraction */
-FunctionalMatrix *msub (FunctionalMatrix *a, FunctionalMatrix *b);
+/* Subtraction. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 2 -> Operands misalligned
+ * 3 -> First operand is NULL
+ * 4 -> Second operand is NULL
+ */
+struct FMatrix *msub (PyObject *raw_a, PyObject *raw_b);
 
-/* Scalar product */
-FunctionalMatrix *mprod (COMPLEX_TYPE r, FunctionalMatrix *a);
+/* Scalar product. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix operand is NULL
+ */
+struct FMatrix *mprod (COMPLEX_TYPE r, PyObject *raw_m);
 
-/* Scalar division */
-FunctionalMatrix *mdiv (COMPLEX_TYPE r, FunctionalMatrix *a);
+/* Scalar division. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix operand is NULL
+ */
+struct FMatrix *mdiv (COMPLEX_TYPE r, PyObject *raw_m);
 
-/* Matrix multiplication */
-FunctionalMatrix *matmul (FunctionalMatrix *a, FunctionalMatrix *b);
+/* Matrix multiplication. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 2 -> Operands misalligned
+ * 3 -> First operand is NULL
+ * 4 -> Second operand is NULL
+ */
+struct FMatrix *matmul (PyObject *raw_a, PyObject *raw_b);
 
-/* Entity-wise multiplication */
-FunctionalMatrix *ewmul (FunctionalMatrix *a, FunctionalMatrix *b);
+/* Entity-wise multiplication. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 2 -> Operands misalligned
+ * 3 -> First operand is NULL
+ * 4 -> Second operand is NULL
+ */
+struct FMatrix *ewmul (PyObject *raw_a, PyObject *raw_b);
 
-/* Kronecker product */
-FunctionalMatrix *kron (FunctionalMatrix *a, FunctionalMatrix *b);
+/* Kronecker product. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> First operand is NULL
+ * 4 -> Second operand is NULL
+ */
+struct FMatrix *kron (PyObject *raw_a, PyObject *raw_b);
 
-/* Transpose */
-FunctionalMatrix *transpose (FunctionalMatrix *m);
+/* Transpose. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix operand is NULL
+ */
+struct FMatrix *transpose (PyObject *raw_m);
 
-/* Hermitian transpose */
-FunctionalMatrix *dagger (FunctionalMatrix *m);
+/* Hermitian transpose. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix operand is NULL
+ */
+struct FMatrix *dagger (PyObject *raw_m);
 
 NATURAL_TYPE
-rows (FunctionalMatrix *m);
+rows (struct FMatrix *m);
 
 NATURAL_TYPE
-columns (FunctionalMatrix *m);
+columns (struct FMatrix *m);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -123,8 +192,15 @@ _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
                 void *items);
 
-/* Partial trace */
-FunctionalMatrix *partial_trace (FunctionalMatrix *m, int elem);
+/* Partial trace. Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 2 -> m is not a square matrix
+ * 3 -> Matrix is NULL
+ * 5 -> Could not allocate argv struct
+ * 6 -> elem id has to be >= 0
+ */
+struct FMatrix *partial_trace (PyObject *raw_m, int elem);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -140,7 +216,7 @@ _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
                   );
 
-FunctionalMatrix *Identity (int n);
+struct FMatrix *Identity (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -156,7 +232,7 @@ _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
                    );
 
-FunctionalMatrix *StateZero (int n);
+struct FMatrix *StateZero (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -170,9 +246,11 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #endif
                 void *isHadamard);
 
-FunctionalMatrix *Walsh (int n);
+void *clone_bool (void *raw_ptr);
 
-FunctionalMatrix *Hadamard (int n);
+struct FMatrix *Walsh (int n);
+
+struct FMatrix *Hadamard (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((pure))
@@ -187,7 +265,11 @@ _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
              void *RawU);
 
-FunctionalMatrix *CU (FunctionalMatrix *U);
+void free_capsule(void *raw_capsule);
+
+void *clone_capsule(void *raw_capsule);
+
+struct FMatrix *CU (PyObject *raw_U);
 
 #ifndef _MSC_VER
 __attribute__ ((pure))
@@ -201,8 +283,8 @@ _CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
 #endif
             void *matrix_2d);
 
-FunctionalMatrix *CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE nrows,
-                             NATURAL_TYPE ncols);
+struct FMatrix *CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE length,
+                           NATURAL_TYPE nrows, NATURAL_TYPE ncols);
 
 /*
  * Calculates the number of bytes added to a string
@@ -219,17 +301,15 @@ _bytes_added (int sprintfRe);
 __attribute__ ((pure))
 #endif
 size_t
-getMemory (FunctionalMatrix *fm);
+getMemory (struct FMatrix *fm);
 
 /* Print matrix */
 #ifndef _MSC_VER
 __attribute__ ((pure))
 #endif
 char *
-FM_toString (FunctionalMatrix *a);
+FM_toString (struct FMatrix *a);
 
-FunctionalMatrix *FM_Clone (FunctionalMatrix *src);
-
-void FM_destroy (FunctionalMatrix *src);
+void FM_destroy (struct FMatrix *src);
 
 #endif /* FUNMATRIX_H_ */
