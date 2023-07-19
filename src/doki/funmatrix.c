@@ -1190,4 +1190,5 @@ void FM_destroy (struct FMatrix *src) {
   src->argv = NULL;
   src->argv_free = NULL;
   src->argv_clone = NULL;
+  free(src);
 }
