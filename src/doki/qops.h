@@ -2,11 +2,11 @@
 #ifndef QOPS_H_
 #define QOPS_H_
 
-#include <Python.h>
 #include "arraylist.h"
 #include "funmatrix.h"
 #include "qgate.h"
 #include "qstate.h"
+#include <Python.h>
 
 unsigned char join (struct state_vector *r, struct state_vector *s1,
                     struct state_vector *s2);

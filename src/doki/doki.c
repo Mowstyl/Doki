@@ -3,9 +3,9 @@
 #include "qgate.h"
 #include "qops.h"
 #include "qstate.h"
+#include <Python.h>
 #include <complex.h>
 #include <errno.h>
-#include <Python.h>
 #include <numpy/arrayobject.h>
 #include <omp.h>
 
@@ -254,14 +254,16 @@ doki_funmatrix_destroy (PyObject *capsule)
   struct FMatrix *matrix;
   void *raw_matrix;
 
-  //printf("Me muedro!\n");
+  printf ("Me muedro!\n");
+  fflush (stdout);
   raw_matrix = PyCapsule_GetPointer (capsule, "qsimov.doki.funmatrix");
   if (raw_matrix != NULL)
     {
       matrix = (struct FMatrix *)raw_matrix;
-      if (matrix != NULL) {
-        FM_destroy(matrix);
-      }
+      if (matrix != NULL)
+        {
+          FM_destroy (matrix);
+        }
     }
 }
 
@@ -472,7 +474,8 @@ doki_gate_new (PyObject *self, PyObject *args)
           raw_val = PyList_GetItem (row, j);
           if (PyComplex_Check (raw_val))
             {
-              val = COMPLEX_INIT (PyComplex_RealAsDouble (raw_val), PyComplex_ImagAsDouble (raw_val));
+              val = COMPLEX_INIT (PyComplex_RealAsDouble (raw_val),
+                                  PyComplex_ImagAsDouble (raw_val));
             }
           else if (PyFloat_Check (raw_val))
             {
@@ -1334,7 +1337,8 @@ doki_registry_density (PyObject *self, PyObject *args)
       switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[DENSITY] Failed to allocate density matrix");
+          PyErr_SetString (DokiError,
+                           "[DENSITY] Failed to allocate density matrix");
           break;
         case 2:
           PyErr_SetString (DokiError, "[DENSITY] The state is NULL");
@@ -1390,7 +1394,7 @@ doki_funmatrix_create (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  size = (NATURAL_TYPE) num_rows * num_cols;
+  size = (NATURAL_TYPE)num_rows * num_cols;
   matrix_2d = MALLOC_TYPE (size, COMPLEX_TYPE);
   if (matrix_2d == NULL)
     {
@@ -1509,8 +1513,8 @@ doki_funmatrix_addcontrol (PyObject *self, PyObject *args)
                        "Syntax: funmatrix_addcontrol(funmatrix, verbose)");
       return NULL;
     }
-  
-  funmatrix = (void *) CU (capsule);
+
+  funmatrix = (void *)CU (capsule);
   if (funmatrix == NULL)
     {
       PyErr_SetString (DokiError, "NULL pointer to matrix");
@@ -1531,8 +1535,6 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
   COMPLEX_TYPE val;
   int debug_enabled, res;
 
-  printf("Myunhen\n");
-  fflush(stdout);
   if (!PyArg_ParseTuple (args, "OKKp", &capsule, &i, &j, &debug_enabled))
     {
       PyErr_SetString (DokiError,
@@ -1558,25 +1560,32 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
   res = getitem (matrix, i, j, &val);
   if (res != 0)
     {
-      switch(res)
+      switch (res)
         {
         case 1:
           PyErr_SetString (DokiError, "[GET] Error adding parent matrices");
           break;
         case 2:
-          PyErr_SetString (DokiError, "[GET] Error substracting parent matrices");
+          PyErr_SetString (DokiError,
+                           "[GET] Error substracting parent matrices");
           break;
         case 3:
-          PyErr_SetString (DokiError, "[GET] Error multiplying parent matrices");
+          PyErr_SetString (DokiError,
+                           "[GET] Error multiplying parent matrices");
           break;
         case 4:
-          PyErr_SetString (DokiError, "[GET] Error multiplying entity-wise parent matrices");
+          PyErr_SetString (
+              DokiError,
+              "[GET] Error multiplying entity-wise parent matrices");
           break;
         case 5:
-          PyErr_SetString (DokiError, "[GET] Error calculating Kronecker product of parent matrices");
+          PyErr_SetString (
+              DokiError,
+              "[GET] Error calculating Kronecker product of parent matrices");
           break;
         case 6:
-          PyErr_SetString (DokiError, "[GET] Unknown operation between parent matrices");
+          PyErr_SetString (DokiError,
+                           "[GET] Unknown operation between parent matrices");
           break;
         case 7:
           PyErr_SetString (DokiError, "[GET] Element out of bounds");
@@ -1613,13 +1622,14 @@ doki_funmatrix_add (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) madd (capsule1, capsule2);
+  raw_matrix = (void *)madd (capsule1, capsule2);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[ADD] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[ADD] Failed to allocate result matrix");
           break;
         case 2:
           PyErr_SetString (DokiError, "[ADD] The operands are misalligned");
@@ -1654,13 +1664,14 @@ doki_funmatrix_sub (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) msub (capsule1, capsule2);
+  raw_matrix = (void *)msub (capsule1, capsule2);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[SUB] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[SUB] Failed to allocate result matrix");
           break;
         case 2:
           PyErr_SetString (DokiError, "[SUB] The operands are misalligned");
@@ -1715,13 +1726,14 @@ doki_funmatrix_scalar_mul (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) mprod (scalar, capsule);
+  raw_matrix = (void *)mprod (scalar, capsule);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[SPROD] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[SPROD] Failed to allocate result matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[SPROD] The matrix operand is NULL");
@@ -1770,18 +1782,19 @@ doki_funmatrix_scalar_div (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  if (RE(scalar) == 0 && IM(scalar) == 0)
+  if (RE (scalar) == 0 && IM (scalar) == 0)
     {
       PyErr_SetString (DokiError, "Dividing by zero");
       return NULL;
     }
-  raw_matrix = (void *) mdiv (scalar, capsule);
+  raw_matrix = (void *)mdiv (scalar, capsule);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[SDIV] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[SDIV] Failed to allocate result matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[SDIV] The matrix operand is NULL");
@@ -1811,13 +1824,14 @@ doki_funmatrix_matmul (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) matmul (capsule1, capsule2);
+  raw_matrix = (void *)matmul (capsule1, capsule2);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[MATMUL] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[MATMUL] Failed to allocate result matrix");
           break;
         case 2:
           PyErr_SetString (DokiError, "[MATMUL] The operands are misalligned");
@@ -1853,13 +1867,14 @@ doki_funmatrix_ewmul (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) ewmul (capsule1, capsule2);
+  raw_matrix = (void *)ewmul (capsule1, capsule2);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[EWMUL] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[EWMUL] Failed to allocate result matrix");
           break;
         case 2:
           PyErr_SetString (DokiError, "[EWMUL] The operands are misalligned");
@@ -1895,13 +1910,14 @@ doki_funmatrix_kron (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) kron (capsule1, capsule2);
+  raw_matrix = (void *)kron (capsule1, capsule2);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[KRON] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[KRON] Failed to allocate result matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[KRON] The first operand is NULL");
@@ -1933,13 +1949,14 @@ doki_funmatrix_transpose (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) transpose (capsule);
+  raw_matrix = (void *)transpose (capsule);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[TRANS] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[TRANS] Failed to allocate result matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[TRANS] The matrix is NULL");
@@ -1968,13 +1985,14 @@ doki_funmatrix_dagger (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) dagger (capsule);
+  raw_matrix = (void *)dagger (capsule);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[HTRANS] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[HTRANS] Failed to allocate result matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[HTRANS] The matrix is NULL");
@@ -2031,22 +2049,25 @@ doki_funmatrix_partialtrace (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  raw_matrix = (void *) partial_trace (capsule, id);
+  raw_matrix = (void *)partial_trace (capsule, id);
   if (raw_matrix == NULL)
     {
-      switch(errno)
+      switch (errno)
         {
         case 1:
-          PyErr_SetString (DokiError, "[PTRACE] Failed to allocate result matrix");
+          PyErr_SetString (DokiError,
+                           "[PTRACE] Failed to allocate result matrix");
           break;
         case 2:
-          PyErr_SetString (DokiError, "[PTRACE] The matrix is not a square matrix");
+          PyErr_SetString (DokiError,
+                           "[PTRACE] The matrix is not a square matrix");
           break;
         case 3:
           PyErr_SetString (DokiError, "[PTRACE] The matrix is NULL");
           break;
         case 5:
-          PyErr_SetString (DokiError, "[PTRACE] Could not allocate argv struct");
+          PyErr_SetString (DokiError,
+                           "[PTRACE] Could not allocate argv struct");
           break;
         case 6:
           PyErr_SetString (DokiError, "[PTRACE] elem id has to be >= 0");
@@ -2093,31 +2114,40 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
       int res = getitem (matrix, i, i, &aux);
       if (res != 0)
         {
-          switch(res)
+          switch (res)
             {
             case 1:
-              PyErr_SetString (DokiError, "[TRACE] Error adding parent matrices");
+              PyErr_SetString (DokiError,
+                               "[TRACE] Error adding parent matrices");
               break;
             case 2:
-              PyErr_SetString (DokiError, "[TRACE] Error substracting parent matrices");
+              PyErr_SetString (DokiError,
+                               "[TRACE] Error substracting parent matrices");
               break;
             case 3:
-              PyErr_SetString (DokiError, "[TRACE] Error multiplying parent matrices");
+              PyErr_SetString (DokiError,
+                               "[TRACE] Error multiplying parent matrices");
               break;
             case 4:
-              PyErr_SetString (DokiError, "[TRACE] Error multiplying entity-wise parent matrices");
+              PyErr_SetString (
+                  DokiError,
+                  "[TRACE] Error multiplying entity-wise parent matrices");
               break;
             case 5:
-              PyErr_SetString (DokiError, "[TRACE] Error calculating Kronecker product of parent matrices");
+              PyErr_SetString (DokiError,
+                               "[TRACE] Error calculating Kronecker product "
+                               "of parent matrices");
               break;
             case 6:
-              PyErr_SetString (DokiError, "[TRACE] Unknown operation between parent matrices");
+              PyErr_SetString (
+                  DokiError,
+                  "[TRACE] Unknown operation between parent matrices");
               break;
             case 7:
               PyErr_SetString (DokiError, "[TRACE] Element out of bounds");
               break;
             case 8:
-              printf("Batracio\n");
+              printf ("Batracio\n");
               PyErr_SetString (DokiError, "[TRACE] f returned NAN");
               break;
             default:

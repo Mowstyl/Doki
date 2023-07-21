@@ -3,9 +3,9 @@
 #define FUNMATRIX_H_
 
 #include "platform.h"
-#include <stdbool.h>
-#include <complex.h>
 #include <Python.h>
+#include <complex.h>
+#include <stdbool.h>
 
 struct FMatrix
 {
@@ -34,7 +34,7 @@ struct FMatrix
   /* Function that frees memory used by argv (if needed) */
   void (*argv_free) (void *);
   /* Function that clones argv (if needed) */
-  void* (*argv_clone) (void *);
+  void *(*argv_clone) (void *);
   /* Whether the matrix has to be transposed or not */
   bool transpose;
   /* Whether the matrix has to be complex conjugated or not */
@@ -70,23 +70,24 @@ struct Matrix2D
   NATURAL_TYPE refcount;
 };
 
-static void free_matrixelem(void *raw_me);
+static void free_matrixelem (void *raw_me);
 
-static void * clone_matrixelem(void *raw_me);
+static void *clone_matrixelem (void *raw_me);
 
-static struct Matrix2D * new_matrix2d(COMPLEX_TYPE *matrix2d, NATURAL_TYPE length);
+static struct Matrix2D *new_matrix2d (COMPLEX_TYPE *matrix2d,
+                                      NATURAL_TYPE length);
 
-static void free_matrix2d(void *raw_mat);
+static void free_matrix2d (void *raw_mat);
 
-static void * clone_matrix2d(void *raw_mat);
+static void *clone_matrix2d (void *raw_mat);
 
 /* Constructor */
 struct FMatrix *
 new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
                       COMPLEX_TYPE (*fun) (NATURAL_TYPE, NATURAL_TYPE,
                                            NATURAL_TYPE, NATURAL_TYPE, void *),
-                      void *argv,
-                      void (*argv_free) (void *), void* (*argv_clone) (void *));
+                      void *argv, void (*argv_free) (void *),
+                      void *(*argv_clone) (void *));
 
 /*
  * Get the element (i, j) from the matrix a, and return the result in
@@ -224,7 +225,7 @@ _IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #else
                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
 #endif
-                  );
+);
 
 struct FMatrix *Identity (int n);
 
@@ -240,7 +241,7 @@ _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #else
                     NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
 #endif
-                   );
+);
 
 struct FMatrix *StateZero (int n);
 
@@ -275,9 +276,9 @@ _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
              void *RawU);
 
-void free_capsule(void *raw_capsule);
+void free_capsule (void *raw_capsule);
 
-void *clone_capsule(void *raw_capsule);
+void *clone_capsule (void *raw_capsule);
 
 struct FMatrix *CU (PyObject *raw_U);
 

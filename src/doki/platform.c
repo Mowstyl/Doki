@@ -1,6 +1,5 @@
 #include "platform.h"
 
-
 COMPLEX_TYPE
 fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
            REAL_TYPE max_i)

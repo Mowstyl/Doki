@@ -1,9 +1,9 @@
+#include <Python.h>
+#include <errno.h>
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <Python.h>
 
 #include "arraylist.h"
 #include "platform.h"
@@ -392,7 +392,8 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
              void *rawstate)
 {
   COMPLEX_TYPE elem_i, elem_j, result;
-  struct state_vector *state = (struct state_vector *) PyCapsule_GetPointer (rawstate, "qsimov.doki.state_vector");
+  struct state_vector *state = (struct state_vector *)PyCapsule_GetPointer (
+      rawstate, "qsimov.doki.state_vector");
   if (state == NULL)
     {
       return COMPLEX_NAN;
@@ -413,7 +414,8 @@ struct FMatrix *
 densityMat (PyObject *state_capsule)
 {
   struct FMatrix *dm = NULL;
-  struct state_vector *state = PyCapsule_GetPointer (state_capsule, "qsimov.doki.state_vector");
+  struct state_vector *state
+      = PyCapsule_GetPointer (state_capsule, "qsimov.doki.state_vector");
 
   if (state != NULL)
     {
@@ -421,7 +423,7 @@ densityMat (PyObject *state_capsule)
                                  state_capsule, free_capsule, clone_capsule);
       if (dm != NULL)
         {
-          Py_INCREF(state_capsule);
+          Py_INCREF (state_capsule);
         }
       else
         {

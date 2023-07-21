@@ -146,9 +146,9 @@
 
 #include <complex.h>
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
 
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec (align (x))
@@ -257,55 +257,77 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
  * numbers.
  */
 #ifndef _MSC_VER
-#define COMPLEX_INIT(real, imag) real + I * imag
+#define COMPLEX_INIT(real, imag) real + I *imag
 #else
-#define COMPLEX_INIT(real, imag) (COMPLEX_TYPE) { real, imag }
+#define COMPLEX_INIT(real, imag)                                              \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    real, imag                                                                \
+  }
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_ADD(a, b) a + b
 #else
-#define COMPLEX_ADD(a, b) (COMPLEX_TYPE) { RE (a) + RE (b), IM (a) + IM (b) }
+#define COMPLEX_ADD(a, b)                                                     \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    RE (a) + RE (b), IM (a) + IM (b)                                          \
+  }
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_SUB(a, b) a - b
 #else
-#define COMPLEX_SUB(a, b) (COMPLEX_TYPE) { RE (a) - RE (b), IM (a) - IM (b) }
+#define COMPLEX_SUB(a, b)                                                     \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    RE (a) - RE (b), IM (a) - IM (b)                                          \
+  }
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_MULT(a, b) a * b
+#define COMPLEX_MULT(a, b) a *b
 #else
-#define COMPLEX_MULT(a, b) (COMPLEX_TYPE) { RE (a) * RE (b) - IM (a) * IM (b), \
-                                            RE (a) * IM (b) + RE (b) * IM (a) }
+#define COMPLEX_MULT(a, b)                                                    \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    RE (a) * RE (b) - IM (a) * IM (b), RE (a) * IM (b) + RE (b) * IM (a)      \
+  }
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_MULT_R(a, r) a * r
+#define COMPLEX_MULT_R(a, r) a *r
 #else
-#define COMPLEX_MULT_R(a, r) (COMPLEX_TYPE) { RE (a) * r, IM (a) * r }
+#define COMPLEX_MULT_R(a, r)                                                  \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    RE (a) * r, IM (a) * r                                                    \
+  }
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_DIV(res, a, b) res = a / b
 #else
-#define COMPLEX_DIV(res, a, b) \
-  do { \
-    REAL_TYPE ar = RE (a), \
-              ai = IM (a), \
-              br = RE (b), \
-              bi = IM (b); \
-    REAL_TYPE divi = br * br + bi * bi; \
-    res = (COMPLEX_TYPE) { (ar * br + ai * bi) / divi, \
-                           (ai * br - ar * bi) / divi }; \
-  } while(0)
+#define COMPLEX_DIV(res, a, b)                                                \
+  do                                                                          \
+    {                                                                         \
+      REAL_TYPE ar = RE (a), ai = IM (a), br = RE (b), bi = IM (b);           \
+      REAL_TYPE divi = br * br + bi * bi;                                     \
+      res = (COMPLEX_TYPE){ (ar * br + ai * bi) / divi,                       \
+                            (ai * br - ar * bi) / divi };                     \
+    }                                                                         \
+  while (0)
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_DIV_R(a, r) a / r
 #else
-#define COMPLEX_DIV_R(a, r) (COMPLEX_TYPE) { RE (a) / r, IM (a) / r }
+#define COMPLEX_DIV_R(a, r)                                                   \
+  (COMPLEX_TYPE)                                                              \
+  {                                                                           \
+    RE (a) / r, IM (a) / r                                                    \
+  }
 #endif
 
 COMPLEX_TYPE
