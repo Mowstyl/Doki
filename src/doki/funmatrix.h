@@ -9,6 +9,9 @@
 
 struct FMatrix
 {
+  /* Scalar number s that will be multiplied by the result of f(i, j) or
+   * multiplied by A op B */
+  COMPLEX_TYPE s;
   /* Number of rows */
   NATURAL_TYPE r;
   /* Number of columns */
@@ -18,9 +21,6 @@ struct FMatrix
   the matrix */
   COMPLEX_TYPE (*f)
   (NATURAL_TYPE, NATURAL_TYPE, NATURAL_TYPE, NATURAL_TYPE, void *);
-  /* Scalar number s that will be multiplied by the result of f(i, j) or
-   * multiplied by A op B */
-  COMPLEX_TYPE s;
   /* Pointer to matrix A in case an operation is going to be performed A op B
    */
   struct FMatrix *A;
@@ -29,6 +29,18 @@ struct FMatrix
    */
   struct FMatrix *B;
   PyObject *B_capsule;
+  /* Extra arguments to pass to the function f */
+  void *argv;
+  /* Function that frees memory used by argv (if needed) */
+  void (*argv_free) (void *);
+  /* Function that clones argv (if needed) */
+  void* (*argv_clone) (void *);
+  /* Whether the matrix has to be transposed or not */
+  bool transpose;
+  /* Whether the matrix has to be complex conjugated or not */
+  bool conjugate;
+  /* Whether the matrix is simple or you have to perform an operation */
+  bool simple;
   /* Operation to apply between the matrices.
       0 -> Matrix addition               A + B
       1 -> Matrix subtraction            A - B
@@ -37,18 +49,6 @@ struct FMatrix
       4 -> Kronecker product             A ⊗ B
   */
   short op;
-  /* Whether the matrix has to be transposed or not */
-  bool transpose;
-  /* Whether the matrix has to be complex conjugated or not */
-  bool conjugate;
-  /* Whether the matrix is simple or you have to perform an operation */
-  bool simple;
-  /* Extra arguments to pass to the function f */
-  void *argv;
-  /* Function that frees memory used by argv (if needed) */
-  void (*argv_free) (void *);
-  /* Function that clones argv (if needed) */
-  void* (*argv_clone) (void *);
 };
 
 struct DMatrixForTrace
@@ -90,7 +90,17 @@ new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
 
 /*
  * Get the element (i, j) from the matrix a, and return the result in
- * the address pointed by sol. If a 0 is returned, something went wrong.
+ * the address pointed by sol.
+ * Return values:
+ * 0 -> OK
+ * 1 -> Error adding
+ * 2 -> Error substracting
+ * 3 -> Error multiplicating matrices
+ * 4 -> Error multiplicating matrices entity-wise
+ * 5 -> Error calculating Kronecker product
+ * 6 -> Unknown operation
+ * 7 -> Out of bounds
+ * 8 -> f returned NAN
  */
 int getitem (struct FMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
              COMPLEX_TYPE *sol);

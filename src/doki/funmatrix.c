@@ -49,14 +49,19 @@ getitem (struct FMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
 {
   unsigned int k;
   NATURAL_TYPE aux;
-  int result = 1;
+  int result = 0;
   COMPLEX_TYPE aux1 = COMPLEX_ZERO, aux2 = COMPLEX_ZERO;
 
   *sol = COMPLEX_NAN;
+  printf("Sushi de ");
+  fflush(stdout);
+  printf("Garlbrezu %s, f: 0x%p, A: 0x%p, B: 0x%p\n", a->simple ? "simp" : "comp", a->f, a->A, a->B);
+  fflush(stdout);
   if (i < a->r && j < a->c)
     {
       if (a->transpose)
         {
+          printf("Transposing\n");
           aux = i;
           i = j;
           j = aux;
@@ -65,100 +70,92 @@ getitem (struct FMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
       if (a->simple)
         {
           *sol = a->f (i, j, a->r, a->c, a->argv);
+          if (isnan (RE (*sol)) || isnan (IM (*sol)))
+            {
+              result = 8;
+            }
         }
       else
         {
-          intmax_t auxilio;
+          int res1, res2;
           switch (a->op)
             {
             case 0: /* Matrix addition */
-              if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
+              res1 = getitem (a->A, i, j, &aux1);
+              res2 = getitem (a->B, i, j, &aux2);
+              if (res1 == 0 && res2 == 0)
                 {
                   *sol = COMPLEX_ADD (aux1, aux2);
                 }
               else
                 {
-                  printf ("Error while operating!\n");
-                  result = 0;
+                  result = 1;
                 }
               break;
             case 1: /* Matrix subtraction */
-              if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
+              res1 = getitem (a->A, i, j, &aux1);
+              res2 = getitem (a->B, i, j, &aux2);
+              if (res1 == 0 && res2 == 0)
                 {
                   *sol = COMPLEX_SUB (aux1, aux2);
                 }
               else
                 {
-                  printf ("Error while operating!\n");
-                  result = 0;
+                  result = 2;
                 }
               break;
             case 2: /* Matrix multiplication    */
               *sol = COMPLEX_ZERO;
               for (k = 0; k < a->A->c; k++)
                 {
-                  if (getitem (a->A, i, k, &aux1)
-                      && getitem (a->B, k, j, &aux2))
+                  res1 = getitem (a->A, i, k, &aux1);
+                  res2 = getitem (a->B, k, j, &aux2);
+                  if (res1 == 0 && res2 == 0)
                     {
                       *sol = COMPLEX_ADD (*sol, COMPLEX_MULT (aux1, aux2));
                     }
                   else
                     {
-                      printf ("Error while operating!\n");
-                      result = 0;
+                      result = 3;
                       break;
                     }
                 }
               break;
             case 3: /* Entity-wise multiplication */
-              if (getitem (a->A, i, j, &aux1) && getitem (a->B, i, j, &aux2))
+              res1 = getitem (a->A, i, j, &aux1);
+              res2 = getitem (a->B, i, j, &aux2);
+              if (res1 == 0 && res2 == 0)
                 {
                   *sol = COMPLEX_MULT (aux1, aux2);
                 }
               else
                 {
-                  printf ("Error while operating!\n");
-                  result = 0;
+                  result = 4;
                 }
               break;
 
             case 4: /* Kronecker product */
-              printf("Omae ");
-              auxilio = a->B->c;
-              printf("%lld ", auxilio);
-              auxilio = a->B->r;
-              printf("%lld ", auxilio);
-              printf("wa ");
-              printf("%p ", a->A);
-              printf("%p ", a->B);
-              printf("mou ");
-              printf("%p ", &aux1);
-              printf("%p ", &aux2);
-              fflush(stdout);
-              if (getitem (a->A, i / a->B->r, j / a->B->c, &aux1)
-                  && getitem (a->B, i % a->B->r, j % a->B->c, &aux2))
+              res1 = getitem (a->A, i / a->B->r, j / a->B->c, &aux1);
+              res2 = getitem (a->B, i % a->B->r, j % a->B->c, &aux2);
+              if (res1 == 0 && res2 == 0)
                 {
-                  printf("Shindeiru - ");
-                  fflush(stdout);
                   *sol = COMPLEX_MULT (aux1, aux2);
                 }
               else
                 {
-                  printf ("Error while operating!\n");
-                  result = 0;
+                  result = 5;
                 }
-              printf("NANI???\n");
-              fflush(stdout);
               break;
 
             default:
               printf ("Unknown option: %d\n", a->op);
-              result = 0;
+              result = 6;
             }
         }
 
-      if (result && a->conjugate)
+      if (result == 0 && a->conjugate)
         {
+          printf("Conjugating\n");
           *sol = conj (*sol);
         }
     }
@@ -169,10 +166,10 @@ getitem (struct FMatrix *a, NATURAL_TYPE i, NATURAL_TYPE j,
           ") is out of bounds!\n Matrix dimensions: (" NATURAL_STRING_FORMAT
           ", " NATURAL_STRING_FORMAT ")\n",
           i, j, a->r, a->c);
-      result = 0;
+      result = 7;
     }
 
-  if (result)
+  if (result == 0)
     {
       *sol = COMPLEX_MULT (*sol, a->s);
     }
@@ -312,10 +309,10 @@ mprod (COMPLEX_TYPE r, PyObject *raw_m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->A = m->A;
-      Py_INCREF(m->A_capsule);
+      Py_XINCREF(m->A_capsule);
       pFM->A_capsule = m->A_capsule;
       pFM->B = m->B;
-      Py_INCREF(m->B_capsule);
+      Py_XINCREF(m->B_capsule);
       pFM->B_capsule = m->B_capsule;
       pFM->s = COMPLEX_MULT (m->s, r);
       pFM->op = m->op;
@@ -361,10 +358,10 @@ mdiv (COMPLEX_TYPE r, PyObject *raw_m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->A = m->A;
-      Py_INCREF(m->A_capsule);
+      Py_XINCREF(m->A_capsule);
       pFM->A_capsule = m->A_capsule;
       pFM->B = m->B;
-      Py_INCREF(m->B_capsule);
+      Py_XINCREF(m->B_capsule);
       pFM->B_capsule = m->B_capsule;
       COMPLEX_DIV (pFM->s, m->s, r);
       pFM->op = m->op;
@@ -409,7 +406,7 @@ matmul (PyObject *raw_a, PyObject *raw_b)
       return NULL;
     }
   /* if the dimensions allign (uxv * vxw) */
-  if (a->c != b->r)
+  if (a->c == b->r)
     {
       pFM = MALLOC_TYPE(1, struct FMatrix);
       if (pFM != NULL)
@@ -439,6 +436,8 @@ matmul (PyObject *raw_a, PyObject *raw_b)
     }
   else
     {
+      //printf("[DEBUG] Shape a (%lld, %lld)\n", a->r, a->c);
+      //printf("[DEBUG] Shape b (%lld, %lld)\n", b->r, b->c);
       errno = 2;
     }
   
@@ -577,10 +576,10 @@ transpose (PyObject *raw_m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->A = m->A;
-      Py_INCREF(m->A_capsule);
+      Py_XINCREF(m->A_capsule);
       pFM->A_capsule = m->A_capsule;
       pFM->B = m->B;
-      Py_INCREF(m->B_capsule);
+      Py_XINCREF(m->B_capsule);
       pFM->B_capsule = m->B_capsule;
       pFM->s = m->s;
       pFM->op = m->op;
@@ -626,16 +625,17 @@ dagger (PyObject *raw_m)
       pFM->c = m->c;
       pFM->f = m->f;
       pFM->A = m->A;
-      Py_INCREF(m->A_capsule);
+      Py_XINCREF(m->A_capsule);
       pFM->A_capsule = m->A_capsule;
       pFM->B = m->B;
-      Py_INCREF(m->B_capsule);
+      Py_XINCREF(m->B_capsule);
       pFM->B_capsule = m->B_capsule;
       pFM->s = m->s;
       pFM->op = m->op;
       pFM->transpose = !(m->transpose);
       pFM->conjugate = !(m->conjugate);
       pFM->simple = m->simple;
+      fflush(stdout);
       if (m->argv_clone != NULL)
         {
           pFM->argv = m->argv_clone(m->argv);
@@ -690,9 +690,9 @@ _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
       me = (struct DMatrixForTrace *)items;
 
       if (getitem (me->m, _GetElemIndex (0, i, me->e),
-                   _GetElemIndex (0, j, me->e), &sol)
+                   _GetElemIndex (0, j, me->e), &sol) == 0
           && getitem (me->m, _GetElemIndex (1, i, me->e),
-                      _GetElemIndex (1, j, me->e), &aux))
+                      _GetElemIndex (1, j, me->e), &aux) == 0)
         {
           sol = COMPLEX_ADD (sol, aux);
         }
@@ -956,7 +956,7 @@ _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
   if (i < rows (U) || j < columns (U))
     val = COMPLEX_INIT (i == j, 0);
   else
-    result = getitem (U, i - rows (U), j - columns (U), &val);
+    result = getitem (U, i - rows (U), j - columns (U), &val) == 0;
 
   if (!result)
     printf ("Error getting element (" NATURAL_STRING_FORMAT
@@ -1014,9 +1014,9 @@ _CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
 #endif
             void *matrix_2d)
 {
-  COMPLEX_TYPE *custom_matrix;
-  custom_matrix = (COMPLEX_TYPE *)matrix_2d;
-  return custom_matrix[i * nrows + j];
+  struct Matrix2D *custom_matrix;
+  custom_matrix = (struct Matrix2D *)matrix_2d;
+  return custom_matrix->matrix2d[i * nrows + j];
 }
 
 static struct Matrix2D * new_matrix2d(COMPLEX_TYPE *matrix2d, NATURAL_TYPE length)
@@ -1062,7 +1062,7 @@ static void *clone_matrix2d(void *raw_mat)
     }
 
   mat->refcount++;
-  return mat;
+  return raw_mat;
 }
 
 struct FMatrix *
@@ -1119,7 +1119,7 @@ FM_toString (struct FMatrix *a)
         {
           for (j = 0; j < a->c; j++)
             {
-              if (getitem (a, i, j, &it) && !isnan (creal (it))
+              if (getitem (a, i, j, &it) && !isnan (creal (it)) == 0
                   && !isnan (cimag (it)))
                 {
                   if (cimag (it) >= 0)
@@ -1182,7 +1182,7 @@ void FM_destroy (struct FMatrix *src) {
   src->A_capsule = NULL;
   src->B = NULL;
   src->B_capsule = NULL;
-  src->s = COMPLEX_ZERO;
+  src->s = COMPLEX_NAN;
   src->op = -1;
   src->transpose = false;
   src->conjugate = false;

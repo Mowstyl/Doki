@@ -1529,8 +1529,10 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
   struct FMatrix *matrix;
   NATURAL_TYPE i, j;
   COMPLEX_TYPE val;
-  int debug_enabled;
+  int debug_enabled, res;
 
+  printf("Myunhen\n");
+  fflush(stdout);
   if (!PyArg_ParseTuple (args, "OKKp", &capsule, &i, &j, &debug_enabled))
     {
       PyErr_SetString (DokiError,
@@ -1553,15 +1555,44 @@ doki_funmatrix_get (PyObject *self, PyObject *args)
     }
 
   val = COMPLEX_ZERO;
-  if (!getitem (matrix, i, j, &val))
+  res = getitem (matrix, i, j, &val);
+  if (res != 0)
     {
-      PyErr_SetString (DokiError, "Error getting element");
+      switch(res)
+        {
+        case 1:
+          PyErr_SetString (DokiError, "[GET] Error adding parent matrices");
+          break;
+        case 2:
+          PyErr_SetString (DokiError, "[GET] Error substracting parent matrices");
+          break;
+        case 3:
+          PyErr_SetString (DokiError, "[GET] Error multiplying parent matrices");
+          break;
+        case 4:
+          PyErr_SetString (DokiError, "[GET] Error multiplying entity-wise parent matrices");
+          break;
+        case 5:
+          PyErr_SetString (DokiError, "[GET] Error calculating Kronecker product of parent matrices");
+          break;
+        case 6:
+          PyErr_SetString (DokiError, "[GET] Unknown operation between parent matrices");
+          break;
+        case 7:
+          PyErr_SetString (DokiError, "[GET] Element out of bounds");
+          break;
+        case 8:
+          PyErr_SetString (DokiError, "[GET] f returned NAN");
+          break;
+        default:
+          PyErr_SetString (DokiError, "[GET] Unknown error code");
+        }
       return NULL;
     }
 
   if (isnan (RE (val)) || isnan (IM (val)))
     {
-      PyErr_SetString (DokiError, "Error calculating element");
+      PyErr_SetString (DokiError, "[GET] Unexpected NAN value");
       return NULL;
     }
 
@@ -1739,6 +1770,11 @@ doki_funmatrix_scalar_div (PyObject *self, PyObject *args)
       return NULL;
     }
 
+  if (RE(scalar) == 0 && IM(scalar) == 0)
+    {
+      PyErr_SetString (DokiError, "Dividing by zero");
+      return NULL;
+    }
   raw_matrix = (void *) mdiv (scalar, capsule);
   if (raw_matrix == NULL)
     {
@@ -2054,9 +2090,45 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
   aux = COMPLEX_ZERO;
   for (i = 0; i < min_shape; i++)
     {
-      if (!getitem (matrix, i, i, &aux))
+      int res = getitem (matrix, i, i, &aux);
+      if (res != 0)
         {
-          PyErr_SetString (DokiError, "Failed to get matrix element");
+          switch(res)
+            {
+            case 1:
+              PyErr_SetString (DokiError, "[TRACE] Error adding parent matrices");
+              break;
+            case 2:
+              PyErr_SetString (DokiError, "[TRACE] Error substracting parent matrices");
+              break;
+            case 3:
+              PyErr_SetString (DokiError, "[TRACE] Error multiplying parent matrices");
+              break;
+            case 4:
+              PyErr_SetString (DokiError, "[TRACE] Error multiplying entity-wise parent matrices");
+              break;
+            case 5:
+              PyErr_SetString (DokiError, "[TRACE] Error calculating Kronecker product of parent matrices");
+              break;
+            case 6:
+              PyErr_SetString (DokiError, "[TRACE] Unknown operation between parent matrices");
+              break;
+            case 7:
+              PyErr_SetString (DokiError, "[TRACE] Element out of bounds");
+              break;
+            case 8:
+              printf("Batracio\n");
+              PyErr_SetString (DokiError, "[TRACE] f returned NAN");
+              break;
+            default:
+              PyErr_SetString (DokiError, "[TRACE] Unknown error code");
+            }
+          return NULL;
+        }
+
+      if (isnan (RE (aux)) || isnan (IM (aux)))
+        {
+          PyErr_SetString (DokiError, "[TRACE] Unexpected NAN value");
           return NULL;
         }
       result = COMPLEX_ADD (result, aux);
