@@ -952,7 +952,8 @@ _CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 {
   COMPLEX_TYPE val;
   int result = 1;
-  struct FMatrix *U = (struct FMatrix *)RawU;
+  struct FMatrix *U
+      = (struct FMatrix *)PyCapsule_GetPointer (RawU, "qsimov.doki.funmatrix");
 
   if (i < rows (U) || j < columns (U))
     val = COMPLEX_INIT (i == j, 0);
