@@ -627,7 +627,6 @@ dagger (PyObject *raw_m)
       pFM->transpose = !(m->transpose);
       pFM->conjugate = !(m->conjugate);
       pFM->simple = m->simple;
-      fflush (stdout);
       if (m->argv_clone != NULL)
         {
           pFM->argv = m->argv_clone (m->argv);
@@ -704,8 +703,6 @@ free_matrixelem (void *raw_me)
     {
       return;
     }
-  printf ("Libero ME\n");
-  fflush (stdout);
   Py_DECREF (me->m_capsule);
   me->m = NULL;
   me->m_capsule = NULL;
@@ -1008,6 +1005,7 @@ CU (PyObject *raw_U)
     {
       return NULL;
     }
+  Py_INCREF (raw_U);
 
   return new_FunctionalMatrix (rows (U) * 2, columns (U) * 2, &_CUFunction,
                                raw_U, free_capsule, clone_capsule);
@@ -1052,8 +1050,6 @@ free_matrix2d (void *raw_mat)
       return;
     }
 
-  printf ("Libero m2d %llu\n", mat->refcount);
-  fflush (stdout);
   mat->refcount--;
   if (mat->refcount == 0)
     {

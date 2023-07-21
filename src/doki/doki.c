@@ -254,16 +254,11 @@ doki_funmatrix_destroy (PyObject *capsule)
   struct FMatrix *matrix;
   void *raw_matrix;
 
-  printf ("Me muedro!\n");
-  fflush (stdout);
   raw_matrix = PyCapsule_GetPointer (capsule, "qsimov.doki.funmatrix");
   if (raw_matrix != NULL)
     {
       matrix = (struct FMatrix *)raw_matrix;
-      if (matrix != NULL)
-        {
-          FM_destroy (matrix);
-        }
+      FM_destroy (matrix);
     }
 }
 
@@ -1438,6 +1433,11 @@ doki_funmatrix_create (PyObject *self, PyObject *args)
         }
     }
   funmatrix = CustomMat (matrix_2d, size, num_rows, num_cols);
+  if (funmatrix == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to matrix");
+      return NULL;
+    }
 
   return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
@@ -1495,6 +1495,11 @@ doki_funmatrix_statezero (PyObject *self, PyObject *args)
       return NULL;
     }
   funmatrix = StateZero (num_qubits);
+  if (funmatrix == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to matrix");
+      return NULL;
+    }
 
   return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
@@ -1521,7 +1526,7 @@ doki_funmatrix_addcontrol (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  return PyCapsule_New (funmatrix, "qsimov.doki.funmatrix",
+  return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
 }
 
@@ -2147,7 +2152,6 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
               PyErr_SetString (DokiError, "[TRACE] Element out of bounds");
               break;
             case 8:
-              printf ("Batracio\n");
               PyErr_SetString (DokiError, "[TRACE] f returned NAN");
               break;
             default:
