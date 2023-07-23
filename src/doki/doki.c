@@ -49,6 +49,8 @@ static PyObject *doki_funmatrix_create (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_identity (PyObject *self, PyObject *args);
 
+static PyObject *doki_funmatrix_densityzero (PyObject *self, PyObject *args);
+
 static PyObject *doki_funmatrix_statezero (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_hadamard (PyObject *self, PyObject *args);
@@ -70,6 +72,8 @@ static PyObject *doki_funmatrix_matmul (PyObject *self, PyObject *args);
 static PyObject *doki_funmatrix_ewmul (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_kron (PyObject *self, PyObject *args);
+
+static PyObject *doki_funmatrix_eyekron (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_transpose (PyObject *self, PyObject *args);
 
@@ -106,6 +110,9 @@ static PyMethodDef DokiMethods[] = {
     "Create an identity functional matrix of the specified number "
     "of qubits" },
   { "funmatrix_statezero", doki_funmatrix_statezero, METH_VARARGS,
+    "Create a functional matrix representing the state vector of "
+    "a quantum system of n qubits at state zero" },
+  { "funmatrix_densityzero", doki_funmatrix_densityzero, METH_VARARGS,
     "Create a functional matrix representing the density matrix of "
     "a quantum system of n qubits at state zero" },
   { "funmatrix_hadamard", doki_funmatrix_hadamard, METH_VARARGS,
@@ -130,6 +137,8 @@ static PyMethodDef DokiMethods[] = {
     "Get the entity-wise multiplication of two functional matrices" },
   { "funmatrix_kron", doki_funmatrix_kron, METH_VARARGS,
     "Get the Kronecker product of two functional matrices" },
+  { "funmatrix_eyekron", doki_funmatrix_eyekron, METH_VARARGS,
+    "Get the Kronecker product of I(2^left), U and I(2^right)" },
   { "funmatrix_transpose", doki_funmatrix_transpose, METH_VARARGS,
     "Get the transpose of a functional matrix" },
   { "funmatrix_dagger", doki_funmatrix_dagger, METH_VARARGS,
@@ -1506,6 +1515,30 @@ doki_funmatrix_statezero (PyObject *self, PyObject *args)
 }
 
 static PyObject *
+doki_funmatrix_densityzero (PyObject *self, PyObject *args)
+{
+  unsigned int num_qubits;
+  struct FMatrix *funmatrix;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "Ip", &num_qubits, &debug_enabled))
+    {
+      PyErr_SetString (DokiError,
+                       "Syntax: funmatrix_densityzero(num_qubits, verbose)");
+      return NULL;
+    }
+  funmatrix = DensityZero (num_qubits);
+  if (funmatrix == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to matrix");
+      return NULL;
+    }
+
+  return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
+}
+
+static PyObject *
 doki_funmatrix_addcontrol (PyObject *self, PyObject *args)
 {
   PyObject *capsule;
@@ -1932,6 +1965,52 @@ doki_funmatrix_kron (PyObject *self, PyObject *args)
           break;
         default:
           PyErr_SetString (DokiError, "[KRON] Unknown error");
+        }
+      return NULL;
+    }
+
+  return PyCapsule_New (raw_matrix, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_eyekron (PyObject *self, PyObject *args)
+{
+  PyObject *capsule;
+  unsigned int left, right;
+  void *raw_matrix;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "OIIp", &capsule, &left, &right,
+                         &debug_enabled))
+    {
+      PyErr_SetString (DokiError, "Syntax: funmatrix_kron(funmatrix, "
+                                  "leftQubits, rightQubits, verbose)");
+      return NULL;
+    }
+
+  raw_matrix = (void *)eyeKron (capsule, left, right);
+  if (raw_matrix == NULL)
+    {
+      switch (errno)
+        {
+        case 1:
+          PyErr_SetString (DokiError,
+                           "[EYEKRON] Failed to allocate result matrix");
+          break;
+        case 3:
+          PyErr_SetString (DokiError, "[EYEKRON] The matrix is NULL");
+          break;
+        case 5:
+          PyErr_SetString (DokiError,
+                           "[EYEKRON] Could not allocate data array");
+          break;
+        case 6:
+          PyErr_SetString (DokiError,
+                           "[EYEKRON] Could not allocate data struct");
+          break;
+        default:
+          PyErr_SetString (DokiError, "[EYEKRON] Unknown error");
         }
       return NULL;
     }

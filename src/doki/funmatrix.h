@@ -63,7 +63,9 @@ struct DMatrixForTrace
 struct Matrix2D
 {
   /* Matrix stored in an 2d array */
-  COMPLEX_TYPE *matrix2d;
+  void *matrix2d;
+  /* Associated FMatrix (if any) */
+  PyObject *fmat;
   /* Length of the array (#rows x #columns) */
   NATURAL_TYPE length;
   /* How many references are there to this object */
@@ -74,8 +76,7 @@ static void free_matrixelem (void *raw_me);
 
 static void *clone_matrixelem (void *raw_me);
 
-static struct Matrix2D *new_matrix2d (COMPLEX_TYPE *matrix2d,
-                                      NATURAL_TYPE length);
+static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length);
 
 static void free_matrix2d (void *raw_mat);
 
@@ -164,6 +165,20 @@ struct FMatrix *ewmul (PyObject *raw_a, PyObject *raw_b);
  */
 struct FMatrix *kron (PyObject *raw_a, PyObject *raw_b);
 
+static COMPLEX_TYPE _eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+                                      NATURAL_TYPE nrows, NATURAL_TYPE ncols,
+                                      void *matrix_2d);
+
+/* I(2^left) kron A kron I(2^right). Returns NULL on error.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix is NULL
+ * 5 -> Could not allocate data array
+ * 6 -> Could not allocate data struct
+ */
+struct FMatrix *eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ,
+                         NATURAL_TYPE rightQ);
+
 /* Transpose. Returns NULL on error.
  * errno values:
  * 1 -> Could not allocate result matrix
@@ -244,6 +259,22 @@ _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 );
 
 struct FMatrix *StateZero (int n);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_DensityZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                      NATURAL_TYPE unused1 __attribute__ ((unused)),
+                      NATURAL_TYPE unused2 __attribute__ ((unused)),
+                      void *unused3 __attribute__ ((unused))
+#else
+                      NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+);
+
+struct FMatrix *DensityZero (int n);
 
 #ifndef _MSC_VER
 __attribute__ ((const))

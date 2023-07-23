@@ -548,6 +548,87 @@ kron (PyObject *raw_a, PyObject *raw_b)
   return pFM;
 }
 
+static COMPLEX_TYPE
+_eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
+                  NATURAL_TYPE ncols, void *matrix_2d)
+{
+  struct Matrix2D *kron_data;
+  struct FMatrix *U;
+  NATURAL_TYPE *data;
+  COMPLEX_TYPE val;
+  int result;
+
+  kron_data = (struct Matrix2D *)matrix_2d;
+  U = PyCapsule_GetPointer (kron_data->fmat, "qsimov.doki.funmatrix");
+  if (U == NULL)
+    {
+      return COMPLEX_NAN;
+    }
+  data = (NATURAL_TYPE *)kron_data->matrix2d;
+
+  if (i % data[1] != j % data[1] || i / nrows != j / ncols)
+    {
+      return COMPLEX_ZERO;
+    }
+  i /= data[1];
+  j /= data[1];
+  i = i % nrows;
+  j = j % ncols;
+
+  result = getitem (U, i, j, &val) == 0;
+  if (!result)
+    printf ("Error getting element (" NATURAL_STRING_FORMAT
+            ", " NATURAL_STRING_FORMAT ") from U gate on eyeKron\n",
+            i, j);
+
+  return val;
+}
+
+struct FMatrix *
+eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
+{
+  struct FMatrix *m, *pFM;
+  struct Matrix2D *data;
+  NATURAL_TYPE size, *raw_data;
+
+  m = PyCapsule_GetPointer (raw_m, "qsimov.doki.funmatrix");
+  if (m == NULL)
+    {
+      errno = 3;
+      return NULL;
+    }
+
+  raw_data = MALLOC_TYPE (2, NATURAL_TYPE);
+  if (raw_data == NULL)
+    {
+      errno = 5;
+      return NULL;
+    }
+  raw_data[0] = 1ULL << leftQ;
+  raw_data[1] = 1ULL << rightQ;
+  data = new_matrix2d ((void *)raw_data, 2);
+  if (data == NULL)
+    {
+      errno = 6;
+      free (raw_data);
+      return NULL;
+    }
+  Py_INCREF (raw_m);
+  data->fmat = raw_m;
+  pFM = new_FunctionalMatrix (
+      raw_data[0] * m->r * raw_data[1], raw_data[0] * m->c * raw_data[1],
+      &_eyeKronFunction, data, free_matrix2d, clone_matrix2d);
+
+  if (pFM == NULL)
+    {
+      errno = 1;
+      free (raw_data);
+      free (data);
+    }
+
+  return pFM;
+}
+
 /* Transpose */
 struct FMatrix *
 transpose (PyObject *raw_m)
@@ -655,7 +736,7 @@ _GetElemIndex (int value, NATURAL_TYPE position, int bit)
     {
       if (bit != 0)
         {
-          aux = (NATURAL_TYPE)(2 << (bit - 1));
+          aux = 1ULL << bit;
         }
       index = position % aux + (position / aux) * (aux << 1) + value * aux;
     }
@@ -810,7 +891,7 @@ Identity (int n)
   struct FMatrix *pFM;
   NATURAL_TYPE size;
 
-  size = 2 << (n - 1); // 2^n
+  size = 1ULL << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, NULL, NULL,
                               NULL);
 
@@ -828,7 +909,7 @@ _StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
 #endif
 )
 {
-  return COMPLEX_INIT (i == 0 && j == 0, 0);
+  return COMPLEX_INIT (i == 0, 0);
 }
 
 struct FMatrix *
@@ -837,8 +918,34 @@ StateZero (int n)
   struct FMatrix *pFM;
   NATURAL_TYPE size;
 
-  size = 2 << (n - 1); // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_StateZeroFunction, NULL, NULL,
+  size = 1ULL << n; // 2^n
+  pFM = new_FunctionalMatrix (size, 1, &_StateZeroFunction, NULL, NULL, NULL);
+
+  return pFM;
+}
+
+static COMPLEX_TYPE
+_DensityZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                      NATURAL_TYPE unused1 __attribute__ ((unused)),
+                      NATURAL_TYPE unused2 __attribute__ ((unused)),
+                      void *unused3 __attribute__ ((unused))
+#else
+                      NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+)
+{
+  return COMPLEX_INIT (i == 0 && j == 0, 0);
+}
+
+struct FMatrix *
+DensityZero (int n)
+{
+  struct FMatrix *pFM;
+  NATURAL_TYPE size;
+
+  size = 1ULL << n; // 2^n
+  pFM = new_FunctionalMatrix (size, size, &_DensityZeroFunction, NULL, NULL,
                               NULL);
 
   return pFM;
@@ -918,7 +1025,7 @@ Walsh (int n)
   int *isHadamard = MALLOC_TYPE (1, int);
 
   *isHadamard = 1;
-  size = 2 << (n - 1); // 2^n
+  size = 1ULL << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard, free,
                               clone_bool);
 
@@ -933,7 +1040,7 @@ Hadamard (int n)
   int *isHadamard = MALLOC_TYPE (1, int);
 
   *isHadamard = 1;
-  size = 2 << (n - 1); // 2^n
+  size = 1ULL << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard, free,
                               clone_bool);
 
@@ -1012,20 +1119,6 @@ CU (PyObject *raw_U)
                                raw_U, free_capsule, clone_capsule);
 }
 
-static COMPLEX_TYPE
-_CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
-#ifndef _MSC_VER
-            NATURAL_TYPE unused __attribute__ ((unused)),
-#else
-            NATURAL_TYPE unused,
-#endif
-            void *matrix_2d)
-{
-  struct Matrix2D *custom_matrix;
-  custom_matrix = (struct Matrix2D *)matrix_2d;
-  return custom_matrix->matrix2d[i * nrows + j];
-}
-
 static struct Matrix2D *
 new_matrix2d (COMPLEX_TYPE *matrix2d, NATURAL_TYPE length)
 {
@@ -1034,6 +1127,7 @@ new_matrix2d (COMPLEX_TYPE *matrix2d, NATURAL_TYPE length)
   if (mat != NULL)
     {
       mat->matrix2d = matrix2d;
+      mat->fmat = NULL;
       mat->length = length;
       mat->refcount = 1;
     }
@@ -1056,6 +1150,7 @@ free_matrix2d (void *raw_mat)
     {
       free (mat->matrix2d);
       mat->matrix2d = NULL;
+      Py_XDECREF (mat->fmat);
       mat->length = 0;
       free (mat);
     }
@@ -1075,13 +1170,27 @@ clone_matrix2d (void *raw_mat)
   return raw_mat;
 }
 
+static COMPLEX_TYPE
+_CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
+#ifndef _MSC_VER
+            NATURAL_TYPE unused __attribute__ ((unused)),
+#else
+            NATURAL_TYPE unused,
+#endif
+            void *matrix_2d)
+{
+  struct Matrix2D *custom_matrix;
+  custom_matrix = (struct Matrix2D *)matrix_2d;
+  return ((COMPLEX_TYPE *)custom_matrix->matrix2d)[i * nrows + j];
+}
+
 struct FMatrix *
 CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE length, NATURAL_TYPE nrows,
            NATURAL_TYPE ncols)
 {
   return new_FunctionalMatrix (nrows, ncols, &_CustomMat,
-                               new_matrix2d (matrix_2d, length), free_matrix2d,
-                               clone_matrix2d);
+                               new_matrix2d ((void *)matrix_2d, length),
+                               free_matrix2d, clone_matrix2d);
 }
 
 static int
