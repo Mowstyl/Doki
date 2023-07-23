@@ -11,6 +11,19 @@
 #include "qops.h"
 #include "qstate.h"
 
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+             NATURAL_TYPE unused1 __attribute__ ((unused)),
+             NATURAL_TYPE unused2 __attribute__ ((unused)),
+#else
+             NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+#endif
+             void *rawstate);
+
 REAL_TYPE
 get_global_phase (struct state_vector *state)
 {
@@ -381,7 +394,7 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
-COMPLEX_TYPE
+static COMPLEX_TYPE
 _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
 #ifndef _MSC_VER
              NATURAL_TYPE unused1 __attribute__ ((unused)),
