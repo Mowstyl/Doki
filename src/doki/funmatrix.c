@@ -10,6 +10,126 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void free_matrixelem (void *raw_me);
+
+static void *clone_matrixelem (void *raw_me);
+
+static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length);
+
+static void free_matrix2d (void *raw_mat);
+
+static void *clone_matrix2d (void *raw_mat);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                   NATURAL_TYPE unused1 __attribute__ ((unused)),
+                   NATURAL_TYPE unused2 __attribute__ ((unused)),
+                   void *unused3 __attribute__ ((unused))
+#else
+                   NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static NATURAL_TYPE
+_GetElemIndex (int value, NATURAL_TYPE position, int bit);
+
+#ifndef _MSC_VER
+__attribute__ ((pure))
+#endif
+static COMPLEX_TYPE
+_PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                NATURAL_TYPE unused1 __attribute__ ((unused)),
+                NATURAL_TYPE unused2 __attribute__ ((unused)),
+#else
+                NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+#endif
+                void *items);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                    NATURAL_TYPE unused1 __attribute__ ((unused)),
+                    NATURAL_TYPE unused2 __attribute__ ((unused)),
+                    void *unused3 __attribute__ ((unused))
+#else
+                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_DensityZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                      NATURAL_TYPE unused1 __attribute__ ((unused)),
+                      NATURAL_TYPE unused2 __attribute__ ((unused)),
+                      void *unused3 __attribute__ ((unused))
+#else
+                      NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+);
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
+#ifndef _MSC_VER
+                NATURAL_TYPE unused __attribute__ ((unused)),
+#else
+                NATURAL_TYPE unused,
+#endif
+                void *isHadamard);
+
+static void *clone_bool (void *raw_ptr);
+
+#ifndef _MSC_VER
+__attribute__ ((pure))
+#endif
+static COMPLEX_TYPE
+_CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+             NATURAL_TYPE unused1 __attribute__ ((unused)),
+             NATURAL_TYPE unused2 __attribute__ ((unused)),
+#else
+             NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+#endif
+             void *RawU);
+
+#ifndef _MSC_VER
+__attribute__ ((pure))
+#endif
+static COMPLEX_TYPE
+_CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
+#ifndef _MSC_VER
+            NATURAL_TYPE unused __attribute__ ((unused)),
+#else
+            NATURAL_TYPE unused,
+#endif
+            void *matrix_2d);
+
+/*
+ * Calculates the number of bytes added to a string
+ * using the result of the sprintf function.
+ */
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static int
+_bytes_added (int sprintfRe);
+
 /* Constructor */
 struct FMatrix *
 new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
@@ -1120,7 +1240,7 @@ CU (PyObject *raw_U)
 }
 
 static struct Matrix2D *
-new_matrix2d (COMPLEX_TYPE *matrix2d, NATURAL_TYPE length)
+new_matrix2d (void *matrix2d, NATURAL_TYPE length)
 {
   struct Matrix2D *mat = MALLOC_TYPE (1, struct Matrix2D);
 

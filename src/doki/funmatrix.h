@@ -72,15 +72,9 @@ struct Matrix2D
   NATURAL_TYPE refcount;
 };
 
-static void free_matrixelem (void *raw_me);
+void free_capsule (void *raw_capsule);
 
-static void *clone_matrixelem (void *raw_me);
-
-static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length);
-
-static void free_matrix2d (void *raw_mat);
-
-static void *clone_matrix2d (void *raw_mat);
+void *clone_capsule (void *raw_capsule);
 
 /* Constructor */
 struct FMatrix *
@@ -165,10 +159,6 @@ struct FMatrix *ewmul (PyObject *raw_a, PyObject *raw_b);
  */
 struct FMatrix *kron (PyObject *raw_a, PyObject *raw_b);
 
-static COMPLEX_TYPE _eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-                                      NATURAL_TYPE nrows, NATURAL_TYPE ncols,
-                                      void *matrix_2d);
-
 /* I(2^left) kron A kron I(2^right). Returns NULL on error.
  * errno values:
  * 1 -> Could not allocate result matrix
@@ -199,25 +189,6 @@ rows (struct FMatrix *m);
 NATURAL_TYPE
 columns (struct FMatrix *m);
 
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static NATURAL_TYPE
-_GetElemIndex (int value, NATURAL_TYPE position, int bit);
-
-#ifndef _MSC_VER
-__attribute__ ((pure))
-#endif
-static COMPLEX_TYPE
-_PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-                NATURAL_TYPE unused1 __attribute__ ((unused)),
-                NATURAL_TYPE unused2 __attribute__ ((unused)),
-#else
-                NATURAL_TYPE unused1, NATURAL_TYPE unused2,
-#endif
-                void *items);
-
 /* Partial trace. Returns NULL on error.
  * errno values:
  * 1 -> Could not allocate result matrix
@@ -228,115 +199,20 @@ _PartialTFunct (NATURAL_TYPE i, NATURAL_TYPE j,
  */
 struct FMatrix *partial_trace (PyObject *raw_m, int elem);
 
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static COMPLEX_TYPE
-_IdentityFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-                   NATURAL_TYPE unused1 __attribute__ ((unused)),
-                   NATURAL_TYPE unused2 __attribute__ ((unused)),
-                   void *unused3 __attribute__ ((unused))
-#else
-                   NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
-#endif
-);
-
 struct FMatrix *Identity (int n);
-
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static COMPLEX_TYPE
-_StateZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-                    NATURAL_TYPE unused1 __attribute__ ((unused)),
-                    NATURAL_TYPE unused2 __attribute__ ((unused)),
-                    void *unused3 __attribute__ ((unused))
-#else
-                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
-#endif
-);
 
 struct FMatrix *StateZero (int n);
 
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static COMPLEX_TYPE
-_DensityZeroFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-                      NATURAL_TYPE unused1 __attribute__ ((unused)),
-                      NATURAL_TYPE unused2 __attribute__ ((unused)),
-                      void *unused3 __attribute__ ((unused))
-#else
-                      NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
-#endif
-);
-
 struct FMatrix *DensityZero (int n);
-
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static COMPLEX_TYPE
-_WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
-#ifndef _MSC_VER
-                NATURAL_TYPE unused __attribute__ ((unused)),
-#else
-                NATURAL_TYPE unused,
-#endif
-                void *isHadamard);
-
-void *clone_bool (void *raw_ptr);
 
 struct FMatrix *Walsh (int n);
 
 struct FMatrix *Hadamard (int n);
 
-#ifndef _MSC_VER
-__attribute__ ((pure))
-#endif
-static COMPLEX_TYPE
-_CUFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-             NATURAL_TYPE unused1 __attribute__ ((unused)),
-             NATURAL_TYPE unused2 __attribute__ ((unused)),
-#else
-             NATURAL_TYPE unused1, NATURAL_TYPE unused2,
-#endif
-             void *RawU);
-
-void free_capsule (void *raw_capsule);
-
-void *clone_capsule (void *raw_capsule);
-
 struct FMatrix *CU (PyObject *raw_U);
-
-#ifndef _MSC_VER
-__attribute__ ((pure))
-#endif
-static COMPLEX_TYPE
-_CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
-#ifndef _MSC_VER
-            NATURAL_TYPE unused __attribute__ ((unused)),
-#else
-            NATURAL_TYPE unused,
-#endif
-            void *matrix_2d);
 
 struct FMatrix *CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE length,
                            NATURAL_TYPE nrows, NATURAL_TYPE ncols);
-
-/*
- * Calculates the number of bytes added to a string
- * using the result of the sprintf function.
- */
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static int
-_bytes_added (int sprintfRe);
 
 /* Gets the size in memory */
 #ifndef _MSC_VER
