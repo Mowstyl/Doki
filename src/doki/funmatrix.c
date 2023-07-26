@@ -10,6 +10,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct DMatrixForTrace
+{
+  /* Density Matrix */
+  struct FMatrix *m;
+  PyObject *m_capsule;
+  /* Element to trace out */
+  int e;
+};
+
+struct Matrix2D
+{
+  /* Matrix stored in an 2d array */
+  void *matrix2d;
+  /* Associated FMatrix (if any) */
+  PyObject *fmat;
+  /* Length of the array (#rows x #columns) */
+  NATURAL_TYPE length;
+  /* How many references are there to this object */
+  NATURAL_TYPE refcount;
+};
+
+struct Projection
+{
+  /* Index of the qubit */
+  PyObject *fmat_capsule;
+  /* Index of the qubit */
+  struct FMatrix *fmat;
+  /* Index of the qubit */
+  NATURAL_TYPE qubitId;
+  /* How many references are there to this object */
+  NATURAL_TYPE refcount;
+  /* Value of the qubit */
+  bool value;
+};
+
 static void free_matrixelem (void *raw_me);
 
 static void *clone_matrixelem (void *raw_me);
@@ -19,6 +54,13 @@ static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length);
 static void free_matrix2d (void *raw_mat);
 
 static void *clone_matrix2d (void *raw_mat);
+
+static struct Projection *new_projection (PyObject *parent_capsule,
+                                          NATURAL_TYPE qubitId, bool value);
+
+static void free_projection (void *raw_proj);
+
+static void *clone_projection (void *raw_proj);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -719,7 +761,7 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
 {
   struct FMatrix *m, *pFM;
   struct Matrix2D *data;
-  NATURAL_TYPE size, *raw_data;
+  NATURAL_TYPE *raw_data;
 
   m = PyCapsule_GetPointer (raw_m, "qsimov.doki.funmatrix");
   if (m == NULL)
@@ -743,8 +785,7 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
       free (raw_data);
       return NULL;
     }
-  Py_INCREF (raw_m);
-  data->fmat = raw_m;
+
   pFM = new_FunctionalMatrix (
       raw_data[0] * m->r * raw_data[1], raw_data[0] * m->c * raw_data[1],
       &_eyeKronFunction, data, free_matrix2d, clone_matrix2d);
@@ -754,6 +795,11 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
       errno = 1;
       free (raw_data);
       free (data);
+    }
+  else
+    {
+      Py_INCREF (raw_m);
+      data->fmat = raw_m;
     }
 
   return pFM;
@@ -852,6 +898,76 @@ dagger (PyObject *raw_m)
   else
     {
       errno = 1;
+    }
+
+  return pFM;
+}
+
+static COMPLEX_TYPE
+_projectionFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                     NATURAL_TYPE unused1 __attribute__ ((unused)),
+                     NATURAL_TYPE unused2 __attribute__ ((unused)),
+#else
+                     NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+#endif
+                     void *raw_proj)
+{
+  struct Projection *proj;
+  COMPLEX_TYPE val;
+  NATURAL_TYPE qbmask, masked;
+  int result;
+
+  proj = (struct Projection *)raw_proj;
+  if (proj->fmat == NULL)
+    {
+      return COMPLEX_NAN;
+    }
+
+  qbmask = 1ULL << proj->qubitId;
+  masked = i & qbmask;
+
+  if ((masked && !proj->value) || (!masked && proj->value))
+    {
+      return COMPLEX_ZERO;
+    }
+
+  result = getitem (proj->fmat, i, j, &val) == 0;
+  if (!result)
+    printf ("Error getting element (" NATURAL_STRING_FORMAT
+            ", " NATURAL_STRING_FORMAT ") from U gate on projection\n",
+            i, j);
+
+  return val;
+}
+
+struct FMatrix *
+projection (PyObject *raw_m, NATURAL_TYPE qubitId, bool value)
+{
+  struct FMatrix *m, *pFM;
+  struct Projection *proj;
+
+  m = PyCapsule_GetPointer (raw_m, "qsimov.doki.funmatrix");
+  if (m == NULL)
+    {
+      errno = 3;
+      return NULL;
+    }
+
+  proj = new_projection (raw_m, qubitId, value);
+  if (proj == NULL)
+    {
+      errno = 5;
+      return NULL;
+    }
+
+  pFM = new_FunctionalMatrix (m->r, m->c, &_projectionFunction, proj,
+                              free_projection, clone_projection);
+
+  if (pFM == NULL)
+    {
+      errno = 1;
+      free_projection (proj);
     }
 
   return pFM;
@@ -1298,6 +1414,67 @@ clone_matrix2d (void *raw_mat)
 
   mat->refcount++;
   return raw_mat;
+}
+
+static struct Projection *
+new_projection (PyObject *parent_capsule, NATURAL_TYPE qubitId, bool value)
+{
+  struct Projection *proj;
+  struct FMatrix *m;
+
+  m = PyCapsule_GetPointer (parent_capsule, "qsimov.doki.funmatrix");
+  if (m == NULL)
+    {
+      errno = 3;
+      return NULL;
+    }
+  proj = MALLOC_TYPE (1, struct Projection);
+
+  if (proj != NULL)
+    {
+      Py_INCREF (parent_capsule);
+      proj->fmat_capsule = parent_capsule;
+      proj->fmat = m;
+      proj->qubitId = qubitId;
+      proj->value = value;
+      proj->refcount = 1;
+    }
+
+  return proj;
+}
+
+static void
+free_projection (void *raw_proj)
+{
+  struct Projection *proj = (struct Projection *)raw_proj;
+
+  if (proj == NULL)
+    {
+      return;
+    }
+
+  proj->refcount--;
+  if (proj->refcount == 0)
+    {
+      Py_DECREF (proj->fmat_capsule);
+      proj->fmat_capsule = NULL;
+      proj->fmat = NULL;
+      free (proj);
+    }
+}
+
+static void *
+clone_projection (void *raw_proj)
+{
+  struct Projection *proj = (struct Projection *)raw_proj;
+
+  if (proj == NULL)
+    {
+      return NULL;
+    }
+
+  proj->refcount++;
+  return raw_proj;
 }
 
 static COMPLEX_TYPE

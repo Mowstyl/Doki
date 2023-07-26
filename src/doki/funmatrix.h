@@ -51,27 +51,6 @@ struct FMatrix
   short op;
 };
 
-struct DMatrixForTrace
-{
-  /* Density Matrix */
-  struct FMatrix *m;
-  PyObject *m_capsule;
-  /* Element to trace out */
-  int e;
-};
-
-struct Matrix2D
-{
-  /* Matrix stored in an 2d array */
-  void *matrix2d;
-  /* Associated FMatrix (if any) */
-  PyObject *fmat;
-  /* Length of the array (#rows x #columns) */
-  NATURAL_TYPE length;
-  /* How many references are there to this object */
-  NATURAL_TYPE refcount;
-};
-
 void free_capsule (void *raw_capsule);
 
 void *clone_capsule (void *raw_capsule);
@@ -182,6 +161,15 @@ struct FMatrix *transpose (PyObject *raw_m);
  * 3 -> Matrix operand is NULL
  */
 struct FMatrix *dagger (PyObject *raw_m);
+
+/* Applies a projection matrix to a state vector, leaving only the amplitudes
+ * for which qubitId is in the state value.
+ * errno values:
+ * 1 -> Could not allocate result matrix
+ * 3 -> Matrix operand is NULL
+ * 5 -> Could not allocate argv struct
+ */
+struct FMatrix *projection (PyObject *raw_m, NATURAL_TYPE qubitId, bool value);
 
 NATURAL_TYPE
 rows (struct FMatrix *m);

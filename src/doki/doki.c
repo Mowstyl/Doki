@@ -79,6 +79,8 @@ static PyObject *doki_funmatrix_transpose (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_dagger (PyObject *self, PyObject *args);
 
+static PyObject *doki_funmatrix_projection (PyObject *self, PyObject *args);
+
 static PyObject *doki_funmatrix_shape (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_partialtrace (PyObject *self, PyObject *args);
@@ -143,6 +145,8 @@ static PyMethodDef DokiMethods[] = {
     "Get the transpose of a functional matrix" },
   { "funmatrix_dagger", doki_funmatrix_dagger, METH_VARARGS,
     "Get the conjugate-transpose of a functional matrix" },
+  { "funmatrix_projection", doki_funmatrix_projection, METH_VARARGS,
+    "Get the result of a projection over a column vector" },
   { "funmatrix_shape", doki_funmatrix_shape, METH_VARARGS,
     "Get a tuple with the shape of the matrix" },
   { "funmatrix_partialtrace", doki_funmatrix_partialtrace, METH_VARARGS,
@@ -1984,7 +1988,7 @@ doki_funmatrix_eyekron (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple (args, "OIIp", &capsule, &left, &right,
                          &debug_enabled))
     {
-      PyErr_SetString (DokiError, "Syntax: funmatrix_kron(funmatrix, "
+      PyErr_SetString (DokiError, "Syntax: funmatrix_eyekron(funmatrix, "
                                   "leftQubits, rightQubits, verbose)");
       return NULL;
     }
@@ -2083,6 +2087,48 @@ doki_funmatrix_dagger (PyObject *self, PyObject *args)
           break;
         default:
           PyErr_SetString (DokiError, "[HTRANS] Unknown error");
+        }
+      return NULL;
+    }
+
+  return PyCapsule_New (raw_matrix, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_projection (PyObject *self, PyObject *args)
+{
+  PyObject *capsule;
+  unsigned int qubitId;
+  void *raw_matrix;
+  bool value, debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "OIpp", &capsule, &qubitId, &value,
+                         &debug_enabled))
+    {
+      PyErr_SetString (
+          DokiError,
+          "Syntax: funmatrix_projection(funmatrix, qubit_id, value, verbose)");
+      return NULL;
+    }
+
+  raw_matrix = (void *)projection (capsule, qubitId, value);
+  if (raw_matrix == NULL)
+    {
+      switch (errno)
+        {
+        case 1:
+          PyErr_SetString (DokiError,
+                           "[PROJ] Failed to allocate result matrix");
+          break;
+        case 3:
+          PyErr_SetString (DokiError, "[PROJ] The matrix is NULL");
+          break;
+        case 5:
+          PyErr_SetString (DokiError, "[PROJ] Could not allocate data struct");
+          break;
+        default:
+          PyErr_SetString (DokiError, "[PROJ] Unknown error");
         }
       return NULL;
     }
