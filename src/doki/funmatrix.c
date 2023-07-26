@@ -669,8 +669,14 @@ kron (PyObject *raw_a, PyObject *raw_b)
 }
 
 static COMPLEX_TYPE
-_eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
-                  NATURAL_TYPE ncols, void *matrix_2d)
+_eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                  NATURAL_TYPE unused1 __attribute__ ((unused)),
+                  NATURAL_TYPE unused2 __attribute__ ((unused)),
+#else
+                  NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+#endif
+                  void *matrix_2d)
 {
   struct Matrix2D *kron_data;
   struct FMatrix *U;
@@ -686,14 +692,18 @@ _eyeKronFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
     }
   data = (NATURAL_TYPE *)kron_data->matrix2d;
 
-  if (i % data[1] != j % data[1] || i / nrows != j / ncols)
+  if (i % data[1] != j % data[1])
     {
       return COMPLEX_ZERO;
     }
   i /= data[1];
   j /= data[1];
-  i = i % nrows;
-  j = j % ncols;
+  if (i / U->r != j / U->c)
+    {
+      return COMPLEX_ZERO;
+    }
+  i = i % U->r;
+  j = j % U->c;
 
   result = getitem (U, i, j, &val) == 0;
   if (!result)
@@ -1361,22 +1371,22 @@ FM_toString (struct FMatrix *a)
         {
           for (j = 0; j < a->c; j++)
             {
-              if (getitem (a, i, j, &it) && !isnan (creal (it)) == 0
-                  && !isnan (cimag (it)))
+              if (getitem (a, i, j, &it) == 0 && !isnan (RE (it))
+                  && !isnan (IM (it)))
                 {
                   if (cimag (it) >= 0)
                     {
                       length += _bytes_added (snprintf (
                           text + length, MAX_BUF - length,
                           REAL_STRING_FORMAT "+" REAL_STRING_FORMAT "i",
-                          creal (it), cimag (it)));
+                          RE (it), IM (it)));
                     }
                   else
                     {
                       length += _bytes_added (snprintf (
                           text + length, MAX_BUF - length,
                           REAL_STRING_FORMAT "-" REAL_STRING_FORMAT "i",
-                          creal (it), cimag (it)));
+                          RE (it), IM (it)));
                     }
                 }
               else
