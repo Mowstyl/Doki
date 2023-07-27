@@ -155,7 +155,7 @@ static PyMethodDef DokiMethods[] = {
     "Get the partial trace of a functional matrix" },
   { "funmatrix_trace", doki_funmatrix_trace, METH_VARARGS,
     "Get the trace of a functional matrix" },
-  { "funmatrix_apply_gate", doki_funmatrix_apply, METH_VARARGS,
+  { "funmatrix_apply", doki_funmatrix_apply, METH_VARARGS,
     "Get the resulting functional matrix after applying a gate to a state "
     "vector" },
   { NULL, NULL, 0, NULL } /* Sentinel */

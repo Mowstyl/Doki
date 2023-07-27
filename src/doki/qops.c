@@ -607,7 +607,7 @@ _ApplyGateFunction (NATURAL_TYPE i,
                     void *raw_app)
 {
   int res;
-  NATURAL_TYPE mask, reg_index, row;
+  NATURAL_TYPE mask, row, reg_index = i;
   COMPLEX_TYPE val = COMPLEX_ZERO;
   struct Application *data = (struct Application *)raw_app;
 
@@ -618,25 +618,25 @@ _ApplyGateFunction (NATURAL_TYPE i,
         {
           res = getitem (data->state, i, 0, &val);
           if (res != 0)
-          {
-            printf ("Error[C] %d while getting state item\n", res);
-            return COMPLEX_NAN;
-          }
+            {
+              printf ("Error[C] %d while getting state item\n", res);
+              return COMPLEX_NAN;
+            }
           return val;
         }
     }
 
-  for (unsigned int k = 0; k < data->num_controls; ++k)
+  for (unsigned int k = 0; k < data->num_anticontrols; ++k)
     {
       mask = NATURAL_ONE << data->anticontrols[k];
       if (i & mask)
         {
           res = getitem (data->state, i, 0, &val);
           if (res != 0)
-          {
-            printf ("Error[A] %d while getting state item\n", res);
-            return COMPLEX_NAN;
-          }
+            {
+              printf ("Error[A] %d while getting state item\n", res);
+              return COMPLEX_NAN;
+            }
           return val;
         }
     }
