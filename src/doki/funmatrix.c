@@ -33,9 +33,9 @@ struct Matrix2D
 
 struct Projection
 {
-  /* Index of the qubit */
+  /* FMatrix capsule */
   PyObject *fmat_capsule;
-  /* Index of the qubit */
+  /* FMatrix over which we'll apply the projection */
   struct FMatrix *fmat;
   /* Index of the qubit */
   NATURAL_TYPE qubitId;
@@ -61,6 +61,8 @@ static struct Projection *new_projection (PyObject *parent_capsule,
 static void free_projection (void *raw_proj);
 
 static void *clone_projection (void *raw_proj);
+
+static struct FMatrix *_WalshHadamard (int n, bool isHadamard);
 
 #ifndef _MSC_VER
 __attribute__ ((const))
@@ -1218,9 +1220,10 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
     }
   else
     {
+      bool aux = false;
       if (i >= mid && j >= mid)
         {
-          number = -RE (_WalshFunction (i - mid, j - mid, mid, 0, 0));
+          number = -RE (_WalshFunction (i - mid, j - mid, mid, 0, &aux));
         }
       else
         {
@@ -1228,11 +1231,11 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
             i = i - mid;
           if (j >= mid)
             j = j - mid;
-          number = RE (_WalshFunction (i, j, mid, 0, 0));
+          number = RE (_WalshFunction (i, j, mid, 0, &aux));
         }
     }
 
-  if (*((int *)isHadamard))
+  if (*((bool *)isHadamard))
     {
       number /= sqrt (size);
     }
@@ -1263,34 +1266,44 @@ clone_bool (void *raw_ptr)
   return new_ptr;
 }
 
-struct FMatrix *
-Walsh (int n)
+static struct FMatrix *
+_WalshHadamard (int n, bool isHadamard)
 {
   struct FMatrix *pFM;
+  struct Matrix2D *data;
   NATURAL_TYPE size;
-  int *isHadamard = MALLOC_TYPE (1, int);
+  bool *isH_ptr = MALLOC_TYPE (1, bool);
 
-  *isHadamard = 1;
+  if (isH_ptr == NULL)
+    {
+      errno = 5;
+      return NULL;
+    }
+  *isH_ptr = isHadamard;
+
   size = 1ULL << n; // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard, free,
-                              clone_bool);
+  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, (void *)isH_ptr,
+                              free, clone_bool);
+  if (pFM == NULL)
+    {
+      errno = 1;
+      free (isH_ptr);
+      return NULL;
+    }
 
   return pFM;
 }
 
 struct FMatrix *
+Walsh (int n)
+{
+  return _WalshHadamard (n, false);
+}
+
+struct FMatrix *
 Hadamard (int n)
 {
-  struct FMatrix *pFM;
-  NATURAL_TYPE size;
-  int *isHadamard = MALLOC_TYPE (1, int);
-
-  *isHadamard = 1;
-  size = 1ULL << n; // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, isHadamard, free,
-                              clone_bool);
-
-  return pFM;
+  return _WalshHadamard (n, true);
 }
 
 static COMPLEX_TYPE
@@ -1359,10 +1372,15 @@ CU (PyObject *raw_U)
     {
       return NULL;
     }
-  Py_INCREF (raw_U);
 
-  return new_FunctionalMatrix (rows (U) * 2, columns (U) * 2, &_CUFunction,
-                               raw_U, free_capsule, clone_capsule);
+  U = new_FunctionalMatrix (rows (U) * 2, columns (U) * 2, &_CUFunction, raw_U,
+                            free_capsule, clone_capsule);
+  if (U != NULL)
+    {
+      Py_INCREF (raw_U);
+    }
+
+  return U;
 }
 
 static struct Matrix2D *

@@ -87,6 +87,8 @@ static PyObject *doki_funmatrix_partialtrace (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_trace (PyObject *self, PyObject *args);
 
+static PyObject *doki_funmatrix_apply_gate (PyObject *self, PyObject *args);
+
 static PyMethodDef DokiMethods[] = {
   { "gate_new", doki_gate_new, METH_VARARGS, "Create new gate" },
   { "gate_get", doki_gate_get, METH_VARARGS, "Get matrix associated to gate" },
@@ -1339,7 +1341,7 @@ doki_registry_density (PyObject *self, PyObject *args)
       return NULL;
     }
 
-  densityMatrix = densityMat (state_capsule);
+  densityMatrix = density_matrix (state_capsule);
   if (densityMatrix == NULL)
     {
       switch (errno)
@@ -1489,6 +1491,21 @@ doki_funmatrix_hadamard (PyObject *self, PyObject *args)
       return NULL;
     }
   funmatrix = Hadamard (num_qubits);
+  if (funmatrix == NULL)
+    {
+      switch (errno)
+        {
+        case 1:
+          PyErr_SetString (DokiError, "[H] Failed to allocate result matrix");
+          break;
+        case 5:
+          PyErr_SetString (DokiError, "[H] Failed to allocate data pointer");
+          break;
+        default:
+          PyErr_SetString (DokiError, "[H] Unknown error");
+        }
+      return NULL;
+    }
 
   return PyCapsule_New ((void *)funmatrix, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
@@ -2294,4 +2311,276 @@ doki_funmatrix_trace (PyObject *self, PyObject *args)
     }
 
   return PyComplex_FromDoubles (RE (result), IM (result));
+}
+
+static PyObject *
+doki_funmatrix_apply (PyObject *self, PyObject *args)
+{
+  PyObject *raw_val, *state_capsule, *gate_capsule, *target_list, *control_set,
+      *acontrol_set, *aux;
+  void *raw_state, *raw_gate;
+  struct FMatrix *state, *new_state, *gate;
+  unsigned char exit_code;
+  unsigned int num_targets, num_controls, num_anticontrols, num_qubits,
+      num_qb_gate, i;
+  unsigned int *targets, *controls, *anticontrols;
+  bool debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "OOOOOp", &state_capsule, &gate_capsule,
+                         &target_list, &control_set, &acontrol_set,
+                         &debug_enabled))
+    {
+      PyErr_SetString (DokiError,
+                       "Syntax: funmatrix_apply(registry, gate, target_list, "
+                       "control_set, anticontrol_set, verbose)");
+      return NULL;
+    }
+
+  raw_state = PyCapsule_GetPointer (state_capsule, "qsimov.doki.funmatrix");
+  if (raw_state == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to registry");
+      return NULL;
+    }
+  state = (struct FMatrix *)raw_state;
+
+  raw_gate = PyCapsule_GetPointer (gate_capsule, "qsimov.doki.funmatrix");
+  if (raw_gate == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to gate");
+      return NULL;
+    }
+  gate = (struct FMatrix *)raw_gate;
+
+  if (state->c > 1)
+    {
+      PyErr_SetString (DokiError, "registry is not a column vector");
+      return NULL;
+    }
+
+  if (gate->c != gate->r)
+    {
+      PyErr_SetString (DokiError, "gates have to be square matrices");
+      return NULL;
+    }
+
+  if (gate->r > state->r)
+    {
+      PyErr_SetString (DokiError, "gate is too big for this state vector");
+      return NULL;
+    }
+
+  num_qubits = log2_64 (state->r);
+  if (state->r != 1U << num_qubits)
+    {
+      PyErr_SetString (DokiError, "registry needs 2^n rows");
+      return NULL;
+    }
+
+  num_qb_gate = log2_64 (gate->r);
+  if (gate->r != 1U << num_qb_gate)
+    {
+      PyErr_SetString (DokiError, "gates need 2^n x 2^n elements");
+      return NULL;
+    }
+
+  if (!PyList_Check (target_list))
+    {
+      PyErr_SetString (DokiError, "target_list must be a list");
+      return NULL;
+    }
+
+  num_targets = (unsigned int)PyList_Size (target_list);
+  if (num_targets != num_qb_gate)
+    {
+      PyErr_SetString (DokiError,
+                       "Wrong number of targets specified for that gate");
+      return NULL;
+    }
+
+  num_controls = 0;
+  if (PySet_Check (control_set))
+    {
+      num_controls = (unsigned int)PySet_Size (control_set);
+    }
+  else if (control_set != Py_None)
+    {
+      PyErr_SetString (DokiError, "control_set must be a set or None");
+      return NULL;
+    }
+
+  num_anticontrols = 0;
+  if (PySet_Check (acontrol_set))
+    {
+      num_anticontrols = (unsigned int)PySet_Size (acontrol_set);
+    }
+  else if (acontrol_set != Py_None)
+    {
+      PyErr_SetString (DokiError, "anticontrol_set must be a set or None");
+      return NULL;
+    }
+
+  targets = MALLOC_TYPE (num_targets, unsigned int);
+  if (targets == NULL)
+    {
+      PyErr_SetString (DokiError, "Failed to allocate target array");
+      return NULL;
+    }
+  controls = NULL;
+  if (num_controls > 0)
+    {
+      controls = MALLOC_TYPE (num_controls, unsigned int);
+      if (controls == NULL)
+        {
+          PyErr_SetString (DokiError, "Failed to allocate control array");
+          return NULL;
+        }
+    }
+  anticontrols = NULL;
+  if (num_anticontrols > 0)
+    {
+      anticontrols = MALLOC_TYPE (num_anticontrols, unsigned int);
+      if (anticontrols == NULL)
+        {
+          PyErr_SetString (DokiError, "Failed to allocate anticontrol array");
+          return NULL;
+        }
+    }
+
+  if (num_controls > 0)
+    {
+      aux = PySet_New (control_set);
+      for (i = 0; i < num_controls; i++)
+        {
+          raw_val = PySet_Pop (aux);
+          if (!PyLong_Check (raw_val))
+            {
+              PyErr_SetString (
+                  DokiError,
+                  "control_set must be a set qubit ids (unsigned integers)");
+              return NULL;
+            }
+          controls[i] = PyLong_AsLong (raw_val);
+          if (controls[i] >= num_qubits)
+            {
+              PyErr_SetString (DokiError, "Control qubit out of range");
+              return NULL;
+            }
+        }
+    }
+
+  if (num_anticontrols > 0)
+    {
+      aux = PySet_New (acontrol_set);
+      for (i = 0; i < num_anticontrols; i++)
+        {
+          raw_val = PySet_Pop (aux);
+          if (!PyLong_Check (raw_val))
+            {
+              PyErr_SetString (DokiError, "anticontrol_set must be a set "
+                                          "qubit ids (unsigned integers)");
+              return NULL;
+            }
+          if (PySet_Contains (control_set, raw_val))
+            {
+              PyErr_SetString (DokiError,
+                               "A control cannot also be an anticontrol");
+              return NULL;
+            }
+          anticontrols[i] = PyLong_AsLong (raw_val);
+          if (anticontrols[i] >= num_qubits)
+            {
+              PyErr_SetString (DokiError, "Anticontrol qubit out of range");
+              return NULL;
+            }
+        }
+    }
+
+  for (i = 0; i < num_targets; i++)
+    {
+      raw_val = PyList_GetItem (target_list, i);
+      if (!PyLong_Check (raw_val))
+        {
+          PyErr_SetString (
+              DokiError,
+              "target_list must be a list of qubit ids (unsigned integers)");
+          return NULL;
+        }
+      if ((num_controls > 0 && PySet_Contains (control_set, raw_val))
+          || (num_anticontrols > 0 && PySet_Contains (acontrol_set, raw_val)))
+        {
+          PyErr_SetString (
+              DokiError,
+              "A target cannot also be a control or an anticontrol");
+          return NULL;
+        }
+      targets[i] = PyLong_AsLong (raw_val);
+      if (targets[i] >= num_qubits)
+        {
+          PyErr_SetString (DokiError, "Target qubit out of range");
+          return NULL;
+        }
+    }
+
+  new_state = MALLOC_TYPE (1, struct FMatrix);
+  if (new_state == NULL)
+    {
+      PyErr_SetString (DokiError, "Failed to allocate new state FMatrix");
+      return NULL;
+    }
+  // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls,
+  // num_anticontrols);
+  exit_code
+      = apply_gate_fmat (state_capsule, num_qubits, gate_capsule, num_qb_gate,
+                         targets, num_targets, controls, num_controls,
+                         anticontrols, num_anticontrols, new_state);
+
+  if (exit_code == 1)
+    {
+      PyErr_SetString (DokiError, "Failed to initialize new state chunk");
+    }
+  else if (exit_code == 2)
+    {
+      PyErr_SetString (DokiError, "Failed to allocate new state chunk");
+    }
+  else if (exit_code == 3)
+    {
+      PyErr_SetString (
+          DokiError,
+          "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
+    }
+  else if (exit_code == 4)
+    {
+      PyErr_SetString (DokiError,
+                       "Failed to allocate new state vector structure");
+    }
+  else if (exit_code == 5)
+    {
+      PyErr_SetString (DokiError, "Failed to apply gate");
+    }
+  else if (exit_code == 11)
+    {
+      PyErr_SetString (DokiError, "Failed to allocate not_copy structure");
+    }
+  else if (exit_code != 0)
+    {
+      PyErr_SetString (DokiError, "Unknown error when applying gate");
+    }
+
+  if (exit_code > 0)
+    {
+      free (targets);
+      if (num_controls > 0)
+        {
+          free (controls);
+        }
+      if (num_anticontrols > 0)
+        {
+          free (anticontrols);
+        }
+      return NULL;
+    }
+
+  return PyCapsule_New ((void *)new_state, "qsimov.doki.funmatrix",
+                        &doki_funmatrix_destroy);
 }

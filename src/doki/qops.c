@@ -423,8 +423,70 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
   return result;
 }
 
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_ApplyGateFunction (NATURAL_TYPE i, NATURAL_TYPE j,
+#ifndef _MSC_VER
+                    NATURAL_TYPE unused1 __attribute__ ((unused)),
+                    NATURAL_TYPE unused2 __attribute__ ((unused)),
+                    void *unused3 __attribute__ ((unused))
+#else
+                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
+#endif
+);
+
+struct Application
+{
+  /* Capsule containing the state */
+  PyObject *state_capsule;
+  /* State vector */
+  struct FMatrix *state;
+  /* Capsule containing the gate */
+  PyObject *gate_capsule;
+  /* Gate matrix */
+  struct FMatrix *gate;
+  /* Target qubit indexes */
+  unsigned int *targets;
+  /* Control qubit indexes */
+  unsigned int *controls;
+  /* Anticontrol qubit indexes */
+  unsigned int *anticontrols;
+  /* How many references are there to this object */
+  NATURAL_TYPE refcount;
+  /* Number of target qubits */
+  unsigned int num_targets;
+  /* Number of control qubits */
+  unsigned int num_controls;
+  /* Number of anticontrol qubits */
+  unsigned int num_anticontrols;
+};
+
+static struct Projection *
+new_application (PyObject *state_capsule, unsigned int num_qubits,
+                 PyObject *gate_capsule, unsigned int num_gate_qubits,
+                 unsigned int *targets, unsigned int num_targets,
+                 unsigned int *controls, unsigned int num_controls,
+                 unsigned int *anticontrols, unsigned int num_anticontrols);
+
+static void free_application (void *raw_app);
+
+static void *clone_application (void *raw_app);
+
+unsigned char
+apply_gate_fmat (PyObject *state_capsule, unsigned int num_qubits,
+                 PyObject *gate_capsule, unsigned int num_gate_qubits,
+                 unsigned int *targets, unsigned int num_targets,
+                 unsigned int *controls, unsigned int num_controls,
+                 unsigned int *anticontrols, unsigned int num_anticontrols,
+                 struct FMatrix *new_state)
+{
+  return 0;
+}
+
 struct FMatrix *
-densityMat (PyObject *state_capsule)
+density_matrix (PyObject *state_capsule)
 {
   struct FMatrix *dm = NULL;
   struct state_vector *state
