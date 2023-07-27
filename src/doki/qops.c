@@ -607,11 +607,13 @@ _ApplyGateFunction (NATURAL_TYPE i,
                     void *raw_app)
 {
   int res;
+  NATURAL_TYPE k;
+  long long n;
   NATURAL_TYPE mask, row, reg_index = i;
   COMPLEX_TYPE val = COMPLEX_ZERO;
   struct Application *data = (struct Application *)raw_app;
 
-  for (unsigned int k = 0; k < data->num_controls; ++k)
+  for (k = 0; k < data->num_controls; ++k)
     {
       mask = NATURAL_ONE << data->controls[k];
       if (!(i & mask))
@@ -619,14 +621,14 @@ _ApplyGateFunction (NATURAL_TYPE i,
           res = getitem (data->state, i, 0, &val);
           if (res != 0)
             {
-              printf ("Error[C] %d while getting state item\n", res);
+              printf ("Error[C] %d while getting state item %llu\n", res, i);
               return COMPLEX_NAN;
             }
           return val;
         }
     }
 
-  for (unsigned int k = 0; k < data->num_anticontrols; ++k)
+  for (k = 0; k < data->num_anticontrols; ++k)
     {
       mask = NATURAL_ONE << data->anticontrols[k];
       if (i & mask)
@@ -634,14 +636,14 @@ _ApplyGateFunction (NATURAL_TYPE i,
           res = getitem (data->state, i, 0, &val);
           if (res != 0)
             {
-              printf ("Error[A] %d while getting state item\n", res);
+              printf ("Error[A] %d while getting state item %llu\n", res);
               return COMPLEX_NAN;
             }
           return val;
         }
     }
 
-  for (unsigned int n = 0; n < data->gate->r; ++n)
+  for (n = 0; n < data->gate->r; ++n)
     {
       // We get the value of each target qubit id on the current new state
       // element and we store it in rowbits following the same order as the
@@ -649,7 +651,7 @@ _ApplyGateFunction (NATURAL_TYPE i,
       COMPLEX_TYPE aux, aux2;
 
       row = 0;
-      for (unsigned int k = 0; k < data->num_targets; k++)
+      for (k = 0; k < data->num_targets; k++)
         {
           row += ((i & (NATURAL_ONE << data->targets[k])) != 0) << k;
           // We check the value of the kth bit of j
@@ -666,13 +668,13 @@ _ApplyGateFunction (NATURAL_TYPE i,
       res = getitem (data->state, reg_index, 0, &aux);
       if (res != 0)
         {
-          printf ("Error[T] %d while getting state item\n", res);
+          printf ("Error[T] %d while getting state[%llu] item %llu\n", res, i, reg_index);
           return COMPLEX_NAN;
         }
       res = getitem (data->gate, row, n, &aux2);
       if (res != 0)
         {
-          printf ("Error[T] %d while getting gate item\n", res);
+          printf ("Error[T] %d while getting gate item %llu, %llu\n", res, row, n);
           return COMPLEX_NAN;
         }
       val = COMPLEX_ADD (val, COMPLEX_MULT (aux, aux2));
