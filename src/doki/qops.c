@@ -365,9 +365,6 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
           for (k = 0; k < num_targets; k++)
             {
               row += ((curr_id & (NATURAL_ONE << targets[k])) != 0) << k;
-            }
-          for (k = 0; k < gate->num_qubits; k++)
-            {
               // We check the value of the kth bit of j
               // and set the value of the kth target bit to it
               if ((j & (NATURAL_ONE << k)) != 0)
