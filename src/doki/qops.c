@@ -354,7 +354,7 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
       // If there has been any error in this thread, we skip
       curr_id = alist_get (not_copy, i);
       reg_index = curr_id;
-      sum = COMPLEX_INIT (0, 0);
+      sum = COMPLEX_ZERO;
       // We have gate->size elements to add in sum
       for (j = 0; j < gate->size; j++)
         {
@@ -423,20 +423,6 @@ _densityFun (NATURAL_TYPE i, NATURAL_TYPE j,
   return result;
 }
 
-#ifndef _MSC_VER
-__attribute__ ((const))
-#endif
-static COMPLEX_TYPE
-_ApplyGateFunction (NATURAL_TYPE i, NATURAL_TYPE j,
-#ifndef _MSC_VER
-                    NATURAL_TYPE unused1 __attribute__ ((unused)),
-                    NATURAL_TYPE unused2 __attribute__ ((unused)),
-                    void *unused3 __attribute__ ((unused))
-#else
-                    NATURAL_TYPE unused1, NATURAL_TYPE unused2, void *unused3
-#endif
-);
-
 struct Application
 {
   /* Capsule containing the state */
@@ -463,9 +449,8 @@ struct Application
   unsigned int num_anticontrols;
 };
 
-static struct Projection *
-new_application (PyObject *state_capsule, unsigned int num_qubits,
-                 PyObject *gate_capsule, unsigned int num_gate_qubits,
+static struct Application *
+new_application (PyObject *state_capsule, PyObject *gate_capsule,
                  unsigned int *targets, unsigned int num_targets,
                  unsigned int *controls, unsigned int num_controls,
                  unsigned int *anticontrols, unsigned int num_anticontrols);
@@ -474,15 +459,229 @@ static void free_application (void *raw_app);
 
 static void *clone_application (void *raw_app);
 
-unsigned char
-apply_gate_fmat (PyObject *state_capsule, unsigned int num_qubits,
-                 PyObject *gate_capsule, unsigned int num_gate_qubits,
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_ApplyGateFunction (NATURAL_TYPE i,
+#ifndef _MSC_VER
+                    NATURAL_TYPE unused1 __attribute__ ((unused)),
+                    NATURAL_TYPE unused2 __attribute__ ((unused)),
+                    NATURAL_TYPE unused3 __attribute__ ((unused)),
+#else
+                    NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+                    NATURAL_TYPE unused3,
+#endif
+                    void *raw_app);
+
+static struct Application *
+new_application (PyObject *state_capsule, PyObject *gate_capsule,
                  unsigned int *targets, unsigned int num_targets,
                  unsigned int *controls, unsigned int num_controls,
-                 unsigned int *anticontrols, unsigned int num_anticontrols,
-                 struct FMatrix *new_state)
+                 unsigned int *anticontrols, unsigned int num_anticontrols)
 {
-  return 0;
+  struct Application *data = MALLOC_TYPE (1, struct Application);
+
+  if (data != NULL)
+    {
+      struct FMatrix *state, *gate;
+
+      state = (struct FMatrix *)PyCapsule_GetPointer (state_capsule,
+                                                      "qsimov.doki.funmatrix");
+      gate = (struct FMatrix *)PyCapsule_GetPointer (gate_capsule,
+                                                     "qsimov.doki.funmatrix");
+
+      if (state == NULL)
+        {
+          errno = 4;
+          return NULL;
+        }
+      if (gate == NULL)
+        {
+          errno = 3;
+          return NULL;
+        }
+
+      Py_INCREF (state_capsule);
+      data->state_capsule = state_capsule;
+      data->state = state;
+      Py_INCREF (gate_capsule);
+      data->gate_capsule = gate_capsule;
+      data->gate = gate;
+      data->targets = targets;
+      data->num_targets = num_targets;
+      data->controls = controls;
+      data->num_controls = num_controls;
+      data->anticontrols = anticontrols;
+      data->num_anticontrols = num_anticontrols;
+      data->refcount = 1;
+    }
+
+  return data;
+}
+
+static void
+free_application (void *raw_app)
+{
+  struct Application *data = (struct Application *)raw_app;
+
+  if (data == NULL)
+    {
+      return;
+    }
+
+  data->refcount--;
+  if (data->refcount == 0)
+    {
+      Py_DECREF (data->state_capsule);
+      data->state_capsule = NULL;
+      data->state = NULL;
+      Py_DECREF (data->gate_capsule);
+      data->gate_capsule = NULL;
+      data->gate = NULL;
+      free (data->targets);
+      data->targets = NULL;
+      free (data->controls);
+      data->controls = NULL;
+      free (data->anticontrols);
+      data->anticontrols = NULL;
+      data->num_targets = 0;
+      data->num_controls = 0;
+      data->num_anticontrols = 0;
+      free (data);
+    }
+}
+
+static void *
+clone_application (void *raw_app)
+{
+  struct Application *data = (struct Application *)raw_app;
+
+  if (data == NULL)
+    {
+      return NULL;
+    }
+
+  data->refcount++;
+  return raw_app;
+}
+
+struct FMatrix *
+apply_gate_fmat (PyObject *state_capsule, PyObject *gate_capsule,
+                 unsigned int *targets, unsigned int num_targets,
+                 unsigned int *controls, unsigned int num_controls,
+                 unsigned int *anticontrols, unsigned int num_anticontrols)
+{
+  struct FMatrix *pFM;
+  struct Application *data = new_application (
+      state_capsule, gate_capsule, targets, num_targets, controls,
+      num_controls, anticontrols, num_anticontrols);
+
+  if (data == NULL)
+    {
+      errno = 5;
+      return NULL;
+    }
+
+  pFM = new_FunctionalMatrix (data->state->r, 1, &_ApplyGateFunction, data,
+                              free_application, clone_application);
+  if (pFM == NULL)
+    {
+      errno = 1;
+      free_application (data);
+    }
+
+  return pFM;
+}
+
+#ifndef _MSC_VER
+__attribute__ ((const))
+#endif
+static COMPLEX_TYPE
+_ApplyGateFunction (NATURAL_TYPE i,
+#ifndef _MSC_VER
+                    NATURAL_TYPE unused1 __attribute__ ((unused)),
+                    NATURAL_TYPE unused2 __attribute__ ((unused)),
+                    NATURAL_TYPE unused3 __attribute__ ((unused)),
+#else
+                    NATURAL_TYPE unused1, NATURAL_TYPE unused2,
+                    NATURAL_TYPE unused3,
+#endif
+                    void *raw_app)
+{
+  int res;
+  NATURAL_TYPE mask, reg_index, row;
+  COMPLEX_TYPE val = COMPLEX_ZERO;
+  struct Application *data = (struct Application *)raw_app;
+
+  for (unsigned int k = 0; k < data->num_controls; ++k)
+    {
+      mask = NATURAL_ONE << data->controls[k];
+      if (!(i & mask))
+        {
+          res = getitem (data->state, i, 0, &val);
+          if (res != 0)
+          {
+            printf ("Error[C] %d while getting state item\n", res);
+            return COMPLEX_NAN;
+          }
+          return val;
+        }
+    }
+
+  for (unsigned int k = 0; k < data->num_controls; ++k)
+    {
+      mask = NATURAL_ONE << data->anticontrols[k];
+      if (i & mask)
+        {
+          res = getitem (data->state, i, 0, &val);
+          if (res != 0)
+          {
+            printf ("Error[A] %d while getting state item\n", res);
+            return COMPLEX_NAN;
+          }
+          return val;
+        }
+    }
+
+  for (unsigned int n = 0; n < data->gate->r; ++n)
+    {
+      // We get the value of each target qubit id on the current new state
+      // element and we store it in rowbits following the same order as the
+      // one in targets
+      COMPLEX_TYPE aux, aux2;
+
+      row = 0;
+      for (unsigned int k = 0; k < data->num_targets; k++)
+        {
+          row += ((i & (NATURAL_ONE << data->targets[k])) != 0) << k;
+          // We check the value of the kth bit of j
+          // and set the value of the kth target bit to it
+          if ((n & (NATURAL_ONE << k)) != 0)
+            {
+              reg_index |= NATURAL_ONE << data->targets[k];
+            }
+          else
+            {
+              reg_index &= ~(NATURAL_ONE << data->targets[k]);
+            }
+        }
+      res = getitem (data->state, reg_index, 0, &aux);
+      if (res != 0)
+        {
+          printf ("Error[T] %d while getting state item\n", res);
+          return COMPLEX_NAN;
+        }
+      res = getitem (data->gate, row, n, &aux2);
+      if (res != 0)
+        {
+          printf ("Error[T] %d while getting gate item\n", res);
+          return COMPLEX_NAN;
+        }
+      val = COMPLEX_ADD (val, COMPLEX_MULT (aux, aux2));
+    }
+
+  return val;
 }
 
 struct FMatrix *

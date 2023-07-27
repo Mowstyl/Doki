@@ -137,8 +137,6 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
 #endif
                 void *isHadamard);
 
-static void *clone_bool (void *raw_ptr);
-
 #ifndef _MSC_VER
 __attribute__ ((pure))
 #endif
@@ -778,8 +776,8 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
       errno = 5;
       return NULL;
     }
-  raw_data[0] = 1ULL << leftQ;
-  raw_data[1] = 1ULL << rightQ;
+  raw_data[0] = NATURAL_ONE << leftQ;
+  raw_data[1] = NATURAL_ONE << rightQ;
   data = new_matrix2d ((void *)raw_data, 2);
   if (data == NULL)
     {
@@ -926,7 +924,7 @@ _projectionFunction (NATURAL_TYPE i, NATURAL_TYPE j,
       return COMPLEX_NAN;
     }
 
-  qbmask = 1ULL << proj->qubitId;
+  qbmask = NATURAL_ONE << proj->qubitId;
   masked = i & qbmask;
 
   if ((masked && !proj->value) || (!masked && proj->value))
@@ -984,7 +982,7 @@ _GetElemIndex (int value, NATURAL_TYPE position, int bit)
     {
       if (bit != 0)
         {
-          aux = 1ULL << bit;
+          aux = NATURAL_ONE << bit;
         }
       index = position % aux + (position / aux) * (aux << 1) + value * aux;
     }
@@ -1139,7 +1137,7 @@ Identity (int n)
   struct FMatrix *pFM;
   NATURAL_TYPE size;
 
-  size = 1ULL << n; // 2^n
+  size = NATURAL_ONE << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, NULL, NULL,
                               NULL);
 
@@ -1166,7 +1164,7 @@ StateZero (int n)
   struct FMatrix *pFM;
   NATURAL_TYPE size;
 
-  size = 1ULL << n; // 2^n
+  size = NATURAL_ONE << n; // 2^n
   pFM = new_FunctionalMatrix (size, 1, &_StateZeroFunction, NULL, NULL, NULL);
 
   return pFM;
@@ -1192,7 +1190,7 @@ DensityZero (int n)
   struct FMatrix *pFM;
   NATURAL_TYPE size;
 
-  size = 1ULL << n; // 2^n
+  size = NATURAL_ONE << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_DensityZeroFunction, NULL, NULL,
                               NULL);
 
@@ -1220,10 +1218,9 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
     }
   else
     {
-      bool aux = false;
       if (i >= mid && j >= mid)
         {
-          number = -RE (_WalshFunction (i - mid, j - mid, mid, 0, &aux));
+          number = -RE (_WalshFunction (i - mid, j - mid, mid, 0, false));
         }
       else
         {
@@ -1231,11 +1228,11 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
             i = i - mid;
           if (j >= mid)
             j = j - mid;
-          number = RE (_WalshFunction (i, j, mid, 0, &aux));
+          number = RE (_WalshFunction (i, j, mid, 0, false));
         }
     }
 
-  if (*((bool *)isHadamard))
+  if ((bool)isHadamard)
     {
       number /= sqrt (size);
     }
@@ -1243,53 +1240,15 @@ _WalshFunction (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE size,
   return COMPLEX_INIT (number, 0);
 }
 
-void *
-clone_bool (void *raw_ptr)
-{
-  bool *new_ptr, *bool_ptr = (bool *)raw_ptr;
-
-  if (bool_ptr == NULL)
-    {
-      return NULL;
-    }
-
-  new_ptr = MALLOC_TYPE (1, bool);
-  if (new_ptr == NULL)
-    {
-      printf ("Error while cloning extra Walsh-Hadamard data. Could not "
-              "allocate memory. Things might get weird.\n");
-      return NULL;
-    }
-
-  *new_ptr = *bool_ptr;
-
-  return new_ptr;
-}
-
 static struct FMatrix *
 _WalshHadamard (int n, bool isHadamard)
 {
   struct FMatrix *pFM;
-  struct Matrix2D *data;
   NATURAL_TYPE size;
-  bool *isH_ptr = MALLOC_TYPE (1, bool);
 
-  if (isH_ptr == NULL)
-    {
-      errno = 5;
-      return NULL;
-    }
-  *isH_ptr = isHadamard;
-
-  size = 1ULL << n; // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, (void *)isH_ptr,
-                              free, clone_bool);
-  if (pFM == NULL)
-    {
-      errno = 1;
-      free (isH_ptr);
-      return NULL;
-    }
+  size = NATURAL_ONE << n; // 2^n
+  pFM = new_FunctionalMatrix (size, size, &_WalshFunction, (void *)isHadamard,
+                              NULL, NULL);
 
   return pFM;
 }

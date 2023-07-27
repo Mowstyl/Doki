@@ -87,7 +87,7 @@ static PyObject *doki_funmatrix_partialtrace (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_trace (PyObject *self, PyObject *args);
 
-static PyObject *doki_funmatrix_apply_gate (PyObject *self, PyObject *args);
+static PyObject *doki_funmatrix_apply (PyObject *self, PyObject *args);
 
 static PyMethodDef DokiMethods[] = {
   { "gate_new", doki_gate_new, METH_VARARGS, "Create new gate" },
@@ -155,6 +155,9 @@ static PyMethodDef DokiMethods[] = {
     "Get the partial trace of a functional matrix" },
   { "funmatrix_trace", doki_funmatrix_trace, METH_VARARGS,
     "Get the trace of a functional matrix" },
+  { "funmatrix_apply_gate", doki_funmatrix_apply, METH_VARARGS,
+    "Get the resulting functional matrix after applying a gate to a state "
+    "vector" },
   { NULL, NULL, 0, NULL } /* Sentinel */
 };
 
@@ -2320,7 +2323,6 @@ doki_funmatrix_apply (PyObject *self, PyObject *args)
       *acontrol_set, *aux;
   void *raw_state, *raw_gate;
   struct FMatrix *state, *new_state, *gate;
-  unsigned char exit_code;
   unsigned int num_targets, num_controls, num_anticontrols, num_qubits,
       num_qb_gate, i;
   unsigned int *targets, *controls, *anticontrols;
@@ -2371,14 +2373,14 @@ doki_funmatrix_apply (PyObject *self, PyObject *args)
     }
 
   num_qubits = log2_64 (state->r);
-  if (state->r != 1U << num_qubits)
+  if (state->r != NATURAL_ONE << num_qubits)
     {
       PyErr_SetString (DokiError, "registry needs 2^n rows");
       return NULL;
     }
 
   num_qb_gate = log2_64 (gate->r);
-  if (gate->r != 1U << num_qb_gate)
+  if (gate->r != NATURAL_ONE << num_qb_gate)
     {
       PyErr_SetString (DokiError, "gates need 2^n x 2^n elements");
       return NULL;
@@ -2522,53 +2524,24 @@ doki_funmatrix_apply (PyObject *self, PyObject *args)
         }
     }
 
-  new_state = MALLOC_TYPE (1, struct FMatrix);
+  new_state = apply_gate_fmat (state_capsule, gate_capsule, targets,
+                               num_targets, controls, num_controls,
+                               anticontrols, num_anticontrols);
+
   if (new_state == NULL)
     {
-      PyErr_SetString (DokiError, "Failed to allocate new state FMatrix");
-      return NULL;
-    }
-  // printf("[DEBUG] nums: %u, %u, %u\n", num_targets, num_controls,
-  // num_anticontrols);
-  exit_code
-      = apply_gate_fmat (state_capsule, num_qubits, gate_capsule, num_qb_gate,
-                         targets, num_targets, controls, num_controls,
-                         anticontrols, num_anticontrols, new_state);
-
-  if (exit_code == 1)
-    {
-      PyErr_SetString (DokiError, "Failed to initialize new state chunk");
-    }
-  else if (exit_code == 2)
-    {
-      PyErr_SetString (DokiError, "Failed to allocate new state chunk");
-    }
-  else if (exit_code == 3)
-    {
-      PyErr_SetString (
-          DokiError,
-          "[BUG] THIS SHOULD NOT HAPPEN. Failed to set first value to 1");
-    }
-  else if (exit_code == 4)
-    {
-      PyErr_SetString (DokiError,
-                       "Failed to allocate new state vector structure");
-    }
-  else if (exit_code == 5)
-    {
-      PyErr_SetString (DokiError, "Failed to apply gate");
-    }
-  else if (exit_code == 11)
-    {
-      PyErr_SetString (DokiError, "Failed to allocate not_copy structure");
-    }
-  else if (exit_code != 0)
-    {
-      PyErr_SetString (DokiError, "Unknown error when applying gate");
-    }
-
-  if (exit_code > 0)
-    {
+      switch (errno)
+        {
+        case 1:
+          PyErr_SetString (DokiError, "[FMAPPLY] Failed to allocate matrix");
+          break;
+        case 5:
+          PyErr_SetString (DokiError,
+                           "[FMAPPLY] Failed to allocate data struct");
+          break;
+        default:
+          PyErr_SetString (DokiError, "[FMAPPLY] Unknown error code");
+        }
       free (targets);
       if (num_controls > 0)
         {

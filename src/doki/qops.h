@@ -45,13 +45,11 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
                  struct state_vector *new_state, struct array_list_e *not_copy,
                  REAL_TYPE *norm_const);
 
-unsigned char
-apply_gate_fmat (PyObject *state_capsule, unsigned int num_qubits,
-                 PyObject *gate_capsule, unsigned int num_gate_qubits,
+struct FMatrix *
+apply_gate_fmat (PyObject *state_capsule, PyObject *gate_capsule,
                  unsigned int *targets, unsigned int num_targets,
                  unsigned int *controls, unsigned int num_controls,
-                 unsigned int *anticontrols, unsigned int num_anticontrols,
-                 struct FMatrix *new_state);
+                 unsigned int *anticontrols, unsigned int num_anticontrols);
 
 struct FMatrix *density_matrix (PyObject *state_capsule);
 

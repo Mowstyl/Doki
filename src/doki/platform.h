@@ -168,9 +168,9 @@
 #else
 #define NATURAL_STRING_FORMAT "%j"
 #endif
-static const NATURAL_TYPE NATURAL_ZERO = 0;
-static const NATURAL_TYPE NATURAL_ONE = 1;
-static const NATURAL_TYPE NATURAL_MAX = INTMAX_MAX;
+#define NATURAL_ZERO 0ULL
+#define NATURAL_ONE 1ULL
+#define NATURAL_MAX INTMAX_MAX
 static const unsigned int NATURAL_BITS = sizeof (NATURAL_TYPE) * 8 - 1;
 
 #define DECIMAL_PLACES 5     // max: 17 (MinGWx64-gcc)
