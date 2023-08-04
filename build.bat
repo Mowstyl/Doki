@@ -4,7 +4,7 @@ SET DokiVersion=1.5.0
 del "dist\doki_Mowstyl-*-cp*-win_amd64.whl"
 
 :: Cleaning Python3.11
-py -3.11 -m pip uninstall doki_Mowstyl -y
+py -3.11 -m pip uninstall doki-Mowstyl -y
 rmdir "doki_Mowstyl.egg-info" /S /Q
 :: Building Python3.11
 py -3.11 -m build
@@ -14,7 +14,7 @@ py -3.11 -m pip install --user dist/doki_Mowstyl-%DokiVersion%-cp311-cp311-win_a
 pause
 
 :: Cleaning Python3.6
-py -3.6 -m pip uninstall doki_Mowstyl -y
+py -3.6 -m pip uninstall doki-Mowstyl -y
 rmdir "doki_Mowstyl.egg-info" /S /Q
 :: Building Python3.6
 py -3.6 -m build
@@ -30,7 +30,7 @@ py -3.7 -m build
 py -3.7 -m pip install --user dist/doki_Mowstyl-%DokiVersion%-cp37-cp37m-win_amd64.whl
 
 :: Cleaning Python3.8
-py -3.8 -m pip uninstall doki_Mowstyl -y
+py -3.8 -m pip uninstall doki-Mowstyl -y
 rmdir "doki_Mowstyl.egg-info" /S /Q
 :: Building Python3.8
 py -3.8 -m build
@@ -38,7 +38,7 @@ py -3.8 -m build
 py -3.8 -m pip install --user dist/doki_Mowstyl-%DokiVersion%-cp38-cp38-win_amd64.whl
 
 :: Cleaning Python3.9
-py -3.9 -m pip uninstall doki_Mowstyl -y
+py -3.9 -m pip uninstall doki-Mowstyl -y
 rmdir "doki_Mowstyl.egg-info" /S /Q
 :: Building Python3.9
 py -3.9 -m build
@@ -46,7 +46,7 @@ py -3.9 -m build
 py -3.9 -m pip install --user dist/doki_Mowstyl-%DokiVersion%-cp39-cp39-win_amd64.whl
 
 :: Cleaning Python3.10
-py -3.10 -m pip uninstall doki_Mowstyl -y
+py -3.10 -m pip uninstall doki-Mowstyl -y
 rmdir "doki_Mowstyl.egg-info" /S /Q
 :: Building Python3.10
 py -3.10 -m build
