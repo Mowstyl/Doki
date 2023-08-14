@@ -21,6 +21,7 @@
 #define QSTATE_H_
 
 #include "platform.h"
+#include <stdbool.h>
 
 struct state_vector
 {
@@ -35,7 +36,7 @@ struct state_vector
   /* normalization constant */
   REAL_TYPE norm_const;
   /* fcarg initialized */
-  _Bool fcarg_init;
+  bool fcarg_init;
   /* first complex argument */
   REAL_TYPE fcarg;
 };
@@ -67,5 +68,7 @@ void state_set (struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
 
 COMPLEX_TYPE
 state_get (struct state_vector *this, NATURAL_TYPE i);
+
+size_t state_mem_size (struct state_vector *this);
 
 #endif /* QSTATE_H_ */

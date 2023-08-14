@@ -11,6 +11,8 @@
 #include "qops.h"
 #include "qstate.h"
 
+static size_t size_state_capsule (void *raw_capsule);
+
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
@@ -456,6 +458,8 @@ static void free_application (void *raw_app);
 
 static void *clone_application (void *raw_app);
 
+static size_t size_application (void *raw_app);
+
 #ifndef _MSC_VER
 __attribute__ ((const))
 #endif
@@ -563,6 +567,26 @@ clone_application (void *raw_app)
   return raw_app;
 }
 
+static size_t
+size_application (void *raw_app)
+{
+  size_t size;
+  struct Application *data = (struct Application *)raw_app;
+
+  if (data == NULL)
+    {
+      return 0;
+    }
+  size = sizeof (struct Application);
+  size += FM_mem_size (data->state);
+  size += FM_mem_size (data->gate);
+  size += data->num_targets * sizeof (unsigned int);
+  size += data->num_controls * sizeof (unsigned int);
+  size += data->num_anticontrols * sizeof (unsigned int);
+
+  return size;
+}
+
 struct FMatrix *
 apply_gate_fmat (PyObject *state_capsule, PyObject *gate_capsule,
                  unsigned int *targets, unsigned int num_targets,
@@ -581,7 +605,8 @@ apply_gate_fmat (PyObject *state_capsule, PyObject *gate_capsule,
     }
 
   pFM = new_FunctionalMatrix (data->state->r, 1, &_ApplyGateFunction, data,
-                              free_application, clone_application);
+                              free_application, clone_application,
+                              size_application);
   if (pFM == NULL)
     {
       errno = 1;
@@ -636,7 +661,7 @@ _ApplyGateFunction (NATURAL_TYPE i,
           res = getitem (data->state, i, 0, &val);
           if (res != 0)
             {
-              printf ("Error[A] %d while getting state item %llu\n", res);
+              printf ("Error[A] %d while getting state item %llu\n", res, i);
               return COMPLEX_NAN;
             }
           return val;
@@ -668,19 +693,38 @@ _ApplyGateFunction (NATURAL_TYPE i,
       res = getitem (data->state, reg_index, 0, &aux);
       if (res != 0)
         {
-          printf ("Error[T] %d while getting state[%llu] item %llu\n", res, i, reg_index);
+          printf ("Error[T] %d while getting state[%llu] item %llu\n", res, i,
+                  reg_index);
           return COMPLEX_NAN;
         }
       res = getitem (data->gate, row, n, &aux2);
       if (res != 0)
         {
-          printf ("Error[T] %d while getting gate item %llu, %llu\n", res, row, n);
+          printf ("Error[T] %d while getting gate item %llu, %llu\n", res, row,
+                  n);
           return COMPLEX_NAN;
         }
       val = COMPLEX_ADD (val, COMPLEX_MULT (aux, aux2));
     }
 
   return val;
+}
+
+static size_t
+size_state_capsule (void *raw_capsule)
+{
+  struct state_vector *state;
+  PyObject *capsule = (PyObject *)raw_capsule;
+
+  if (capsule == NULL)
+    {
+      return 0;
+    }
+
+  state = (struct state_vector *)PyCapsule_GetPointer (
+      capsule, "qsimov.doki.state_vector");
+
+  return state_mem_size (state);
 }
 
 struct FMatrix *
@@ -693,7 +737,8 @@ density_matrix (PyObject *state_capsule)
   if (state != NULL)
     {
       dm = new_FunctionalMatrix (state->size, state->size, &_densityFun,
-                                 state_capsule, free_capsule, clone_capsule);
+                                 state_capsule, free_capsule, clone_capsule,
+                                 size_state_capsule);
       if (dm != NULL)
         {
           Py_INCREF (state_capsule);

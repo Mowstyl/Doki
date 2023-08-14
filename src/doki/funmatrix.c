@@ -29,6 +29,8 @@ struct Matrix2D
   NATURAL_TYPE length;
   /* How many references are there to this object */
   NATURAL_TYPE refcount;
+  /* Size of an array element */
+  size_t elem_size;
 };
 
 struct Projection
@@ -49,11 +51,16 @@ static void free_matrixelem (void *raw_me);
 
 static void *clone_matrixelem (void *raw_me);
 
-static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length);
+static size_t size_matrixelem (void *raw_me);
+
+static struct Matrix2D *new_matrix2d (void *matrix2d, NATURAL_TYPE length,
+                                      size_t elem_size);
 
 static void free_matrix2d (void *raw_mat);
 
 static void *clone_matrix2d (void *raw_mat);
+
+static size_t size_matrix2d (void *raw_mat);
 
 static struct Projection *new_projection (PyObject *parent_capsule,
                                           NATURAL_TYPE qubitId, bool value);
@@ -61,6 +68,14 @@ static struct Projection *new_projection (PyObject *parent_capsule,
 static void free_projection (void *raw_proj);
 
 static void *clone_projection (void *raw_proj);
+
+static size_t size_projection (void *raw_proj);
+
+void free_capsule (void *raw_capsule);
+
+void *clone_capsule (void *raw_capsule);
+
+static size_t size_fmat_capsule (void *raw_capsule);
 
 static struct FMatrix *_WalshHadamard (int n, bool isHadamard);
 
@@ -178,7 +193,8 @@ new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
                       COMPLEX_TYPE (*fun) (NATURAL_TYPE, NATURAL_TYPE,
                                            NATURAL_TYPE, NATURAL_TYPE, void *),
                       void *argv, void (*argv_free) (void *),
-                      void *(*argv_clone) (void *))
+                      void *(*argv_clone) (void *),
+                      size_t (*argv_size) (void *))
 {
   struct FMatrix *pFM = MALLOC_TYPE (1, struct FMatrix);
 
@@ -199,6 +215,7 @@ new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
       pFM->argv = argv;
       pFM->argv_free = argv_free;
       pFM->argv_clone = argv_clone;
+      pFM->argv_size = argv_size;
     }
 
   return pFM;
@@ -374,6 +391,7 @@ madd (PyObject *raw_a, PyObject *raw_b)
           pFM->argv = NULL;
           pFM->argv_free = NULL;
           pFM->argv_clone = NULL;
+          pFM->argv_size = NULL;
         }
       else
         {
@@ -430,6 +448,7 @@ msub (PyObject *raw_a, PyObject *raw_b)
           pFM->argv = NULL;
           pFM->argv_free = NULL;
           pFM->argv_clone = NULL;
+          pFM->argv_size = NULL;
         }
       else
         {
@@ -484,6 +503,7 @@ mprod (COMPLEX_TYPE r, PyObject *raw_m)
         }
       pFM->argv_free = m->argv_free;
       pFM->argv_clone = m->argv_clone;
+      pFM->argv_size = m->argv_size;
     }
   else
     {
@@ -533,6 +553,7 @@ mdiv (COMPLEX_TYPE r, PyObject *raw_m)
         }
       pFM->argv_free = m->argv_free;
       pFM->argv_clone = m->argv_clone;
+      pFM->argv_size = m->argv_size;
     }
   else
     {
@@ -583,6 +604,7 @@ matmul (PyObject *raw_a, PyObject *raw_b)
           pFM->argv = NULL;
           pFM->argv_free = NULL;
           pFM->argv_clone = NULL;
+          pFM->argv_size = NULL;
         }
       else
         {
@@ -640,6 +662,7 @@ ewmul (PyObject *raw_a, PyObject *raw_b)
           pFM->argv = NULL;
           pFM->argv_free = NULL;
           pFM->argv_clone = NULL;
+          pFM->argv_size = NULL;
         }
       else
         {
@@ -701,6 +724,7 @@ kron (PyObject *raw_a, PyObject *raw_b)
       pFM->argv = NULL;
       pFM->argv_free = NULL;
       pFM->argv_clone = NULL;
+      pFM->argv_size = NULL;
     }
   else
     {
@@ -778,7 +802,7 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
     }
   raw_data[0] = NATURAL_ONE << leftQ;
   raw_data[1] = NATURAL_ONE << rightQ;
-  data = new_matrix2d ((void *)raw_data, 2);
+  data = new_matrix2d ((void *)raw_data, 2, sizeof (NATURAL_TYPE));
   if (data == NULL)
     {
       errno = 6;
@@ -788,7 +812,7 @@ eyeKron (PyObject *raw_m, NATURAL_TYPE leftQ, NATURAL_TYPE rightQ)
 
   pFM = new_FunctionalMatrix (
       raw_data[0] * m->r * raw_data[1], raw_data[0] * m->c * raw_data[1],
-      &_eyeKronFunction, data, free_matrix2d, clone_matrix2d);
+      &_eyeKronFunction, data, free_matrix2d, clone_matrix2d, size_matrix2d);
 
   if (pFM == NULL)
     {
@@ -845,6 +869,7 @@ transpose (PyObject *raw_m)
         }
       pFM->argv_free = m->argv_free;
       pFM->argv_clone = m->argv_clone;
+      pFM->argv_size = m->argv_size;
     }
   else
     {
@@ -894,6 +919,7 @@ dagger (PyObject *raw_m)
         }
       pFM->argv_free = m->argv_free;
       pFM->argv_clone = m->argv_clone;
+      pFM->argv_size = m->argv_size;
     }
   else
     {
@@ -962,7 +988,8 @@ projection (PyObject *raw_m, NATURAL_TYPE qubitId, bool value)
     }
 
   pFM = new_FunctionalMatrix (m->r, m->c, &_projectionFunction, proj,
-                              free_projection, clone_projection);
+                              free_projection, clone_projection,
+                              size_projection);
 
   if (pFM == NULL)
     {
@@ -1063,6 +1090,23 @@ clone_matrixelem (void *raw_me)
   return new_me;
 }
 
+static size_t
+size_matrixelem (void *raw_me)
+{
+  size_t size;
+  struct DMatrixForTrace *me = (struct DMatrixForTrace *)raw_me;
+
+  if (me == NULL)
+    {
+      return 0;
+    }
+
+  size = sizeof (struct DMatrixForTrace);
+  size += FM_mem_size (me->m);
+
+  return size;
+}
+
 /* Partial trace */
 struct FMatrix *
 partial_trace (PyObject *raw_m, int elem)
@@ -1095,7 +1139,8 @@ partial_trace (PyObject *raw_m, int elem)
       me->m_capsule = raw_m;
       me->e = elem;
       pt = new_FunctionalMatrix (m->r >> 1, m->c >> 1, _PartialTFunct, me,
-                                 free_matrixelem, clone_matrixelem);
+                                 free_matrixelem, clone_matrixelem,
+                                 size_matrixelem);
       if (pt == NULL)
         {
           Py_DECREF (raw_m);
@@ -1138,7 +1183,7 @@ Identity (int n)
   NATURAL_TYPE size;
 
   size = NATURAL_ONE << n; // 2^n
-  pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, NULL, NULL,
+  pFM = new_FunctionalMatrix (size, size, &_IdentityFunction, NULL, NULL, NULL,
                               NULL);
 
   return pFM;
@@ -1165,7 +1210,8 @@ StateZero (int n)
   NATURAL_TYPE size;
 
   size = NATURAL_ONE << n; // 2^n
-  pFM = new_FunctionalMatrix (size, 1, &_StateZeroFunction, NULL, NULL, NULL);
+  pFM = new_FunctionalMatrix (size, 1, &_StateZeroFunction, NULL, NULL, NULL,
+                              NULL);
 
   return pFM;
 }
@@ -1192,7 +1238,7 @@ DensityZero (int n)
 
   size = NATURAL_ONE << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_DensityZeroFunction, NULL, NULL,
-                              NULL);
+                              NULL, NULL);
 
   return pFM;
 }
@@ -1248,7 +1294,7 @@ _WalshHadamard (int n, bool isHadamard)
 
   size = NATURAL_ONE << n; // 2^n
   pFM = new_FunctionalMatrix (size, size, &_WalshFunction, (void *)isHadamard,
-                              NULL, NULL);
+                              NULL, NULL, NULL);
 
   return pFM;
 }
@@ -1321,6 +1367,23 @@ clone_capsule (void *raw_capsule)
   return raw_capsule;
 }
 
+static size_t
+size_fmat_capsule (void *raw_capsule)
+{
+  struct FMatrix *pFM;
+  PyObject *capsule = (PyObject *)raw_capsule;
+
+  if (capsule == NULL)
+    {
+      return 0;
+    }
+
+  pFM = (struct FMatrix *)PyCapsule_GetPointer (capsule,
+                                                "qsimov.doki.funmatrix");
+
+  return FM_mem_size (pFM);
+}
+
 struct FMatrix *
 CU (PyObject *raw_U)
 {
@@ -1333,7 +1396,7 @@ CU (PyObject *raw_U)
     }
 
   U = new_FunctionalMatrix (rows (U) * 2, columns (U) * 2, &_CUFunction, raw_U,
-                            free_capsule, clone_capsule);
+                            free_capsule, clone_capsule, size_fmat_capsule);
   if (U != NULL)
     {
       Py_INCREF (raw_U);
@@ -1343,7 +1406,7 @@ CU (PyObject *raw_U)
 }
 
 static struct Matrix2D *
-new_matrix2d (void *matrix2d, NATURAL_TYPE length)
+new_matrix2d (void *matrix2d, NATURAL_TYPE length, size_t elem_size)
 {
   struct Matrix2D *mat = MALLOC_TYPE (1, struct Matrix2D);
 
@@ -1353,6 +1416,7 @@ new_matrix2d (void *matrix2d, NATURAL_TYPE length)
       mat->fmat = NULL;
       mat->length = length;
       mat->refcount = 1;
+      mat->elem_size = elem_size;
     }
 
   return mat;
@@ -1391,6 +1455,23 @@ clone_matrix2d (void *raw_mat)
 
   mat->refcount++;
   return raw_mat;
+}
+
+static size_t
+size_matrix2d (void *raw_mat)
+{
+  size_t size;
+  struct Matrix2D *mat = (struct Matrix2D *)raw_mat;
+
+  if (mat == NULL)
+    {
+      return 0;
+    }
+  size = sizeof (struct Matrix2D);
+  size += FM_mem_size (mat->fmat);
+  size += mat->length * mat->elem_size;
+
+  return size;
 }
 
 static struct Projection *
@@ -1454,6 +1535,22 @@ clone_projection (void *raw_proj)
   return raw_proj;
 }
 
+static size_t
+size_projection (void *raw_proj)
+{
+  size_t size;
+  struct Projection *proj = (struct Projection *)raw_proj;
+
+  if (proj == NULL)
+    {
+      return 0;
+    }
+  size = sizeof (struct Projection);
+  size += FM_mem_size (proj->fmat);
+
+  return size;
+}
+
 static COMPLEX_TYPE
 _CustomMat (NATURAL_TYPE i, NATURAL_TYPE j, NATURAL_TYPE nrows,
 #ifndef _MSC_VER
@@ -1472,9 +1569,10 @@ struct FMatrix *
 CustomMat (COMPLEX_TYPE *matrix_2d, NATURAL_TYPE length, NATURAL_TYPE nrows,
            NATURAL_TYPE ncols)
 {
-  return new_FunctionalMatrix (nrows, ncols, &_CustomMat,
-                               new_matrix2d ((void *)matrix_2d, length),
-                               free_matrix2d, clone_matrix2d);
+  return new_FunctionalMatrix (
+      nrows, ncols, &_CustomMat,
+      new_matrix2d ((void *)matrix_2d, length, sizeof (COMPLEX_TYPE)),
+      free_matrix2d, clone_matrix2d, size_matrix2d);
 }
 
 static int
@@ -1598,5 +1696,30 @@ FM_destroy (struct FMatrix *src)
   src->argv = NULL;
   src->argv_free = NULL;
   src->argv_clone = NULL;
+  src->argv_size = NULL;
   free (src);
+}
+
+size_t
+FM_mem_size (struct FMatrix *src)
+{
+  size_t size;
+  if (src == NULL)
+    {
+      return 0;
+    }
+  size = sizeof (struct FMatrix);
+  if (src->A != NULL)
+    {
+      size += FM_mem_size (src->A);
+    }
+  if (src->B != NULL)
+    {
+      size += FM_mem_size (src->B);
+    }
+  if (src->argv_size != NULL)
+    {
+      size += src->argv_size (src->argv);
+    }
+  return size;
 }

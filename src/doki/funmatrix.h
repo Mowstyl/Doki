@@ -35,6 +35,8 @@ struct FMatrix
   void (*argv_free) (void *);
   /* Function that clones argv (if needed) */
   void *(*argv_clone) (void *);
+  /* Function that returns the size of argv (if needed) */
+  size_t (*argv_size) (void *);
   /* Whether the matrix has to be transposed or not */
   bool transpose;
   /* Whether the matrix has to be complex conjugated or not */
@@ -61,7 +63,8 @@ new_FunctionalMatrix (NATURAL_TYPE n_rows, NATURAL_TYPE n_columns,
                       COMPLEX_TYPE (*fun) (NATURAL_TYPE, NATURAL_TYPE,
                                            NATURAL_TYPE, NATURAL_TYPE, void *),
                       void *argv, void (*argv_free) (void *),
-                      void *(*argv_clone) (void *));
+                      void *(*argv_clone) (void *),
+                      size_t (*argv_size) (void *));
 
 /*
  * Get the element (i, j) from the matrix a, and return the result in
@@ -217,5 +220,7 @@ char *
 FM_toString (struct FMatrix *a);
 
 void FM_destroy (struct FMatrix *src);
+
+size_t FM_mem_size (struct FMatrix *src);
 
 #endif /* FUNMATRIX_H_ */

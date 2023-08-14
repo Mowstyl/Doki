@@ -45,6 +45,8 @@ static PyObject *doki_registry_prob (PyObject *self, PyObject *args);
 
 static PyObject *doki_registry_density (PyObject *self, PyObject *args);
 
+static PyObject *doki_registry_mem (PyObject *self, PyObject *args);
+
 static PyObject *doki_funmatrix_create (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_identity (PyObject *self, PyObject *args);
@@ -89,6 +91,8 @@ static PyObject *doki_funmatrix_trace (PyObject *self, PyObject *args);
 
 static PyObject *doki_funmatrix_apply (PyObject *self, PyObject *args);
 
+static PyObject *doki_funmatrix_mem (PyObject *self, PyObject *args);
+
 static PyMethodDef DokiMethods[] = {
   { "gate_new", doki_gate_new, METH_VARARGS, "Create new gate" },
   { "gate_get", doki_gate_get, METH_VARARGS, "Get matrix associated to gate" },
@@ -108,6 +112,8 @@ static PyMethodDef DokiMethods[] = {
     "Get the chances of obtaining 1 when measuring a certain qubit" },
   { "registry_density", doki_registry_density, METH_VARARGS,
     "Get the density matrix" },
+  { "registry_mem", doki_registry_mem, METH_VARARGS,
+    "Get the memory allocated by this registry in bytes" },
   { "funmatrix_create", doki_funmatrix_create, METH_VARARGS,
     "Create a functional matrix from a matrix" },
   { "funmatrix_identity", doki_funmatrix_identity, METH_VARARGS,
@@ -158,6 +164,8 @@ static PyMethodDef DokiMethods[] = {
   { "funmatrix_apply", doki_funmatrix_apply, METH_VARARGS,
     "Get the resulting functional matrix after applying a gate to a state "
     "vector" },
+  { "funmatrix_mem", doki_funmatrix_mem, METH_VARARGS,
+    "Get the memory allocated by this FMatrix in bytes" },
   { NULL, NULL, 0, NULL } /* Sentinel */
 };
 
@@ -1367,6 +1375,32 @@ doki_registry_density (PyObject *self, PyObject *args)
 }
 
 static PyObject *
+doki_registry_mem (PyObject *self, PyObject *args)
+{
+  PyObject *state_capsule;
+  void *raw_state;
+  size_t size;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "Op", &state_capsule, &debug_enabled))
+    {
+      PyErr_SetString (DokiError, "Syntax: registry_mem(state, verbose)");
+      return NULL;
+    }
+
+  raw_state = PyCapsule_GetPointer (state_capsule, "qsimov.doki.state_vector");
+  if (raw_state == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to registry");
+      return NULL;
+    }
+
+  size = state_mem_size ((struct state_vector*) raw_state);
+
+  return PyLong_FromSize_t(size);
+}
+
+static PyObject *
 doki_funmatrix_create (PyObject *self, PyObject *args)
 {
 
@@ -2556,4 +2590,30 @@ doki_funmatrix_apply (PyObject *self, PyObject *args)
 
   return PyCapsule_New ((void *)new_state, "qsimov.doki.funmatrix",
                         &doki_funmatrix_destroy);
+}
+
+static PyObject *
+doki_funmatrix_mem (PyObject *self, PyObject *args)
+{
+  PyObject *fmat_capsule;
+  void *raw_fmat;
+  size_t size;
+  int debug_enabled;
+
+  if (!PyArg_ParseTuple (args, "Op", &fmat_capsule, &debug_enabled))
+    {
+      PyErr_SetString (DokiError, "Syntax: funmatrix_mem(fmatrix, verbose)");
+      return NULL;
+    }
+
+  raw_fmat = PyCapsule_GetPointer (fmat_capsule, "qsimov.doki.funmatrix");
+  if (raw_fmat == NULL)
+    {
+      PyErr_SetString (DokiError, "NULL pointer to FMatrix");
+      return NULL;
+    }
+
+  size = FM_mem_size ((struct FMatrix*) raw_fmat);
+
+  return PyLong_FromSize_t(size);
 }

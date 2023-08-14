@@ -1,11 +1,12 @@
 #include "qstate.h"
 #include "platform.h"
+#include <stdbool.h>
 
 unsigned char
 state_init (struct state_vector *this, unsigned int num_qubits, int init)
 {
   size_t i, offset, errored_chunk;
-  _Bool errored;
+  bool errored;
 
   if (num_qubits > MAX_NUM_QUBITS)
     {
@@ -136,4 +137,20 @@ state_get (struct state_vector *this, NATURAL_TYPE i)
       this->vector[i / COMPLEX_ARRAY_SIZE][i % COMPLEX_ARRAY_SIZE],
       this->norm_const);
   return fix_value (val, -1, -1, 1, 1);
+}
+
+size_t
+state_mem_size (struct state_vector *this)
+{
+  size_t state_size;
+  if (this == NULL)
+    {
+      return 0;
+    }
+  state_size = sizeof (struct state_vector);
+  state_size += this->num_chunks * sizeof (COMPLEX_TYPE *);
+  state_size
+      += (this->num_chunks - 1) * COMPLEX_ARRAY_SIZE * sizeof (COMPLEX_TYPE);
+  state_size += (this->size % COMPLEX_ARRAY_SIZE) * sizeof (COMPLEX_TYPE);
+  return state_size;
 }
