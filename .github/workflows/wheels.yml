@@ -22,7 +22,7 @@ jobs:
              if [ "$RUNNER_OS" == "Linux" ]; then
                sudo apt install -y libomp-dev
              elif [ "$RUNNER_OS" == "Windows" ]; then
-               echo "Y ahora que?"
+               echo "OpenMP already installed on Windows"
              elif [ "$RUNNER_OS" == "macOS" ]; then
                brew install libomp
              else
@@ -40,7 +40,7 @@ jobs:
                export LDFLAGS="-L/usr/local/opt/libomp/lib"
                export CPPFLAGS="-I/usr/local/opt/libomp/include"
              fi
-             python -m cibuildwheel --archs auto64 --output-dir wheelhouse
+             python -m cibuildwheel --output-dir wheelhouse
         shell: bash
 
       - uses: actions/upload-artifact@v4
