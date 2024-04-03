@@ -155,4 +155,5 @@ dist_*/
 *.old
 olddoki/
 .vscode/
+wheelhouse/
 publish.bat
