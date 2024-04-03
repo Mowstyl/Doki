@@ -43,7 +43,7 @@ jobs:
                export LDFLAGS="-L/usr/local/opt/libomp/lib"
                export CPPFLAGS="-I/usr/local/opt/libomp/include"
              fi
-             python -m cibuildwheel --output-dir wheelhouse
+             python -m cibuildwheel --archs auto64 --output-dir wheelhouse
         shell: bash
 
       - uses: actions/upload-artifact@v4
