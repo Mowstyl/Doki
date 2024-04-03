@@ -19,7 +19,7 @@ jobs:
       - name: Install OpenMP
         run: |
              if [ "$RUNNER_OS" == "Linux" ]; then
-               apt install -y libomp-dev
+               sudo apt install -y libomp-dev
              elif [ "$RUNNER_OS" == "Windows" ]; then
                echo "Y ahora que?"
              elif [ "$RUNNER_OS" == "macOS" ]; then
