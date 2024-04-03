@@ -8,7 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        #os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-20.04, windows-latest, windows-2019]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +25,6 @@ jobs:
                echo "Y ahora que?"
              elif [ "$RUNNER_OS" == "macOS" ]; then
                brew install libomp
-               export LDFLAGS="-L/usr/local/opt/libomp/lib"
-               export CPPFLAGS="-I/usr/local/opt/libomp/include"
              else
                echo "$RUNNER_OS not supported"
                exit 1
