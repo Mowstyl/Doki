@@ -25,7 +25,6 @@ archs = "auto64"
 skip = "pp*"
 test-requires = "scipy"
 test-command = [
-  "echo \"{package}\"",
   "python {package}/tests/reg_creation_tests.py 1 14",
   "python {package}/tests/one_gate_tests.py 1 14 1",
   "python {package}/tests/one_gate_tests.py 1 14 8",
