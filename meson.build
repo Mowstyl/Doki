@@ -1,8 +1,8 @@
 project(
   'Doki',
   'c',
-  version: '1.5.2',
-  license: 'MIT',
+  version: run_command('src/_build_utils/version.py', check: true).stdout().strip(),
+  license: 'GPL-3.0-or-later',
   meson_version: '>=1.2.99',
   default_options: [
     'buildtype=debugoptimized',
