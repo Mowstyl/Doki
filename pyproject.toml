@@ -1,11 +1,9 @@
 [build-system]
 build-backend = 'mesonpy'
 requires = [
-#    "setuptools>=42",
     "meson-python",
     "numpy>=1.19"
 ]
-#build-backend = "setuptools.build_meta"
 
 [project]
 name = "doki-Mowstyl"
@@ -14,10 +12,13 @@ description="Python interface for Doki (QSimov core)"
 long_description="Python module containing Doki, the core of QSimov quantum computer simulation platform. Written in C with OpenMP parallelism."
 readme = "README.md"
 requires-python = ">=3.8"
-license = {file = "LICENSE"}
+license = {file = "LICENSE.md"}
 authors = [
   {name = "Hernán Indíbil de la Cruz Calvo", email = "indikalesken@hotmail.com"},
 ]
 dependencies = [
     "numpy>=1.19"
 ]
+
+[tool.cibuildwheel]
+skip = "pp*"
