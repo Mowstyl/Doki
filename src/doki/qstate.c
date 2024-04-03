@@ -96,7 +96,7 @@ state_clone (struct state_vector *dest, struct state_vector *source)
       return exit_code;
     }
 #pragma omp parallel for default(none)                                        \
-    shared(source, dest, exit_code) private(i)
+    shared(source, dest, exit_code, COMPLEX_ARRAY_SIZE) private(i)
   for (i = 0; i < source->size; i++)
     {
       dest->vector[i / COMPLEX_ARRAY_SIZE][i % COMPLEX_ARRAY_SIZE]

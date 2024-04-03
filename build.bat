@@ -1,5 +1,5 @@
 @ECHO OFF
-SET DokiVersion=1.5.1
+SET DokiVersion=1.5.2
 :: Removing old windows wheels
 del "dist\doki_Mowstyl-*-cp*-win_amd64.whl"
 

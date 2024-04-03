@@ -114,7 +114,6 @@ unsigned char
 measure (struct state_vector *state, _Bool *result, unsigned int target,
          struct state_vector *new_state, REAL_TYPE roll)
 {
-  NATURAL_TYPE i;
   REAL_TYPE sum;
   unsigned char exit_code;
 
@@ -349,7 +348,7 @@ calculate_empty (struct state_vector *state, struct qgate *gate,
                                      targets, num_targets, \
                                      controls, num_controls, \
                                      anticontrols, num_anticontrols, \
-                                     norm_const) \
+                                     norm_const, COMPLEX_ZERO) \
                              private (curr_id, sum, row, reg_index, i, j, k)
   for (i = 0; i < not_copy->size; i++)
     {

@@ -1462,13 +1462,16 @@ size_matrix2d (void *raw_mat)
 {
   size_t size;
   struct Matrix2D *mat = (struct Matrix2D *)raw_mat;
+  struct FMatrix *aux;
 
   if (mat == NULL)
     {
       return 0;
     }
   size = sizeof (struct Matrix2D);
-  size += FM_mem_size (mat->fmat);
+
+  aux = PyCapsule_GetPointer (mat->fmat, "qsimov.doki.funmatrix");
+  size += FM_mem_size (aux);
   size += mat->length * mat->elem_size;
 
   return size;
