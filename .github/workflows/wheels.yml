@@ -24,6 +24,8 @@ jobs:
                echo "Y ahora que?"
              elif [ "$RUNNER_OS" == "macOS" ]; then
                brew install libomp
+               export LDFLAGS="-L/usr/local/opt/libomp/lib"
+               export CPPFLAGS="-I/usr/local/opt/libomp/include"
              else
                echo "$RUNNER_OS not supported"
              exit 1
