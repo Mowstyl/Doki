@@ -8,8 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        #os: [ubuntu-latest, windows-latest, macos-13, macos-14]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        #os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +45,7 @@ jobs:
       - name: Build wheels on macOS
         if: startsWith(matrix.os, 'macOS')
         run: |
-             export LDFLAGS="-L/usr/local/opt/libomp/lib"
-             export CPPFLAGS="-I/usr/local/opt/libomp/include"
+             export CIBW_ENVIRONMENT_MACOS="LDFLAGS=\"-L/usr/local/opt/libomp/lib\" CPPFLAGS=\"-I/usr/local/opt/libomp/include\""
              python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels not on macOS

@@ -12,7 +12,14 @@ project(
   ]
 )
 
-omp = dependency('openmp')
+if host_machine.system() != 'darwin'
+  omp = dependency('openmp')
+else
+  omp = dependency(
+    compile_args:['-Xpreprocessor', '-fopenmp']
+  )
+endif
+
 
 py = import('python').find_installation(pure: false)
 
