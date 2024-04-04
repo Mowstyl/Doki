@@ -32,6 +32,7 @@ jobs:
              elif [ "$RUNNER_OS" == "Windows" ]; then
                echo "OpenMP already installed on Windows"
              elif [ "$RUNNER_OS" == "macOS" ]; then
+               brew install llvm
                brew install libomp
              else
                echo "$RUNNER_OS not supported"
