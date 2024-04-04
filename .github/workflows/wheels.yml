@@ -31,7 +31,6 @@ jobs:
                sudo apt install -y libomp-dev
              elif [ "$RUNNER_OS" == "Windows" ]; then
                echo "OpenMP already installed on Windows"
-               echo $PATH
              elif [ "$RUNNER_OS" == "macOS" ]; then
                brew install libomp
              else
@@ -45,7 +44,12 @@ jobs:
 
       - name: Build wheels
         run: |
-             if [ "$RUNNER_OS" == "macOS" ]; then
+             if [ "$RUNNER_OS" == "Windows" ]; then
+               echo $PATH
+               PATH=$(echo "$PATH" | sed -e 's/:\/mingw64\/bin$//')
+               PATH=$(echo "$PATH" | sed -e 's/:\/usr\/bin$//')
+               echo $PATH
+             elif [ "$RUNNER_OS" == "macOS" ]; then
                export LDFLAGS="-L/usr/local/opt/libomp/lib"
                export CPPFLAGS="-I/usr/local/opt/libomp/include"
              fi
