@@ -47,6 +47,7 @@ jobs:
              if [ "$RUNNER_OS" == "Windows" ]; then
                echo $PATH
                PATH=$(echo "$PATH" | sed -e 's/:\/mingw64\/bin$//')
+               PATH=$(echo "$PATH" | sed -e 's/:\/usr\/bin$//'):/usr/bin
                echo $PATH
              elif [ "$RUNNER_OS" == "macOS" ]; then
                export LDFLAGS="-L/usr/local/opt/libomp/lib"
