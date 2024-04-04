@@ -78,18 +78,19 @@ get_global_phase (struct state_vector *state)
 REAL_TYPE
 probability (struct state_vector *state, unsigned int target_id)
 {
-  NATURAL_TYPE i;
+  NATURAL_TYPE i, mask;
   REAL_TYPE value;
   COMPLEX_TYPE val;
 
   value = 0;
+  mask = NATURAL_ONE << target_id;
 #pragma omp parallel for reduction (+:value) \
                              default (none) \
-                             shared (state, target_id) \
+                             shared (state, mask, target_id) \
                              private (i, val)
-  for (i = 0; i < state->size; i++)
+  for (i = mask; i < state->size; ++i)
     {
-      if ((i & (NATURAL_ONE << target_id)) != 0)
+      if (i & mask)
         {
           val = state_get (state, i);
           value += RE (val) * RE (val) + IM (val) * IM (val);
@@ -137,14 +138,14 @@ measure (struct state_vector *state, _Bool *result, unsigned int target,
 
   sum = probability (state, target);
   *result = sum > roll;
-  exit_code = collapse (state, target, *result, new_state);
+  exit_code = collapse (state, target, *result, sum, new_state);
 
   return exit_code;
 }
 
 unsigned char
 collapse (struct state_vector *state, unsigned int target_id, _Bool value,
-          struct state_vector *new_state)
+          REAL_TYPE prob_one, struct state_vector *new_state)
 {
   unsigned char exit_code;
   NATURAL_TYPE i, j, count, step;
@@ -172,18 +173,17 @@ collapse (struct state_vector *state, unsigned int target_id, _Bool value,
       free (new_state);
       return exit_code;
     }
-  norm_const = 0;
-  toggle = 0;
+  norm_const = value ? prob_one : 1 - prob_one;
+  toggle = value;
   count = 0;
   step = NATURAL_ONE << target_id;
   j = 0;
-  for (i = 0; i < state->size; i++)
+  for (i = value ? step : 0; i < state->size; i++)
     {
       if (toggle == value)
         {
           aux = state_get (state, i);
           state_set (new_state, j, aux);
-          norm_const += pow (RE (aux), 2) + pow (IM (aux), 2);
           j++;
         }
       count++;

@@ -40,7 +40,8 @@ REAL_TYPE
 get_global_phase (struct state_vector *state);
 
 unsigned char collapse (struct state_vector *state, unsigned int id,
-                        _Bool value, struct state_vector *new_state);
+                        _Bool value, REAL_TYPE prob_one,
+                        struct state_vector *new_state);
 
 unsigned char apply_gate (struct state_vector *state, struct qgate *gate,
                           unsigned int *targets, unsigned int num_targets,
