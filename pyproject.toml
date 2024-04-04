@@ -39,3 +39,6 @@ test-command = [
   "python {package}/tests/probability_tests.py 1 14 8",
   "python {package}/tests/density_matrix_tests.py 1 5",
 ]
+
+[tool.cibuildwheel.linux]
+before-test = "yum install -y openblas"

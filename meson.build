@@ -15,7 +15,7 @@ project(
 if host_machine.system() != 'darwin'
   omp = dependency('openmp')
 else
-  omp = dependency(
+  omp = declare_dependency(
     compile_args:['-Xpreprocessor', '-fopenmp']
   )
 endif
