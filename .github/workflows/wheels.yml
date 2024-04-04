@@ -50,7 +50,7 @@ jobs:
              python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels not on macOS
-        if: not startsWith(matrix.os, 'macOS')
+        if: !startsWith(matrix.os, 'macOS')
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
