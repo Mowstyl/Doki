@@ -40,6 +40,9 @@ test-command = [
   "python {package}/tests/density_matrix_tests.py 1 5",
 ]
 
-[tool.cibuildwheel.linux]
+#[tool.cibuildwheel.linux]
+#before-test = "yum install -y openblas"
+
+[[tool.cibuildwheel.overrides]]
 select = "*musllinux*"
 before-test = "apk add openblas-dev"
