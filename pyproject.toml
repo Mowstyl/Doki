@@ -7,7 +7,7 @@ requires = [
 
 [project]
 name = "doki-Mowstyl"
-version = "1.5.2"
+version = "1.6.0"
 description="Python interface for Doki (QSimov core)"
 long_description="Python module containing Doki, the core of QSimov quantum computer simulation platform. Written in C with OpenMP parallelism."
 readme = "README.md"
