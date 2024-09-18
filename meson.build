@@ -15,7 +15,7 @@ project(
 )
 
 if host_machine.system() != 'darwin'
-  omp = dependency('openmp')
+  omp = find_library('openmp', dirs: '/opt/homebrew/Cellar/libomp/18.1.8/')
 else
   libomp = meson.get_compiler('c').find_library('libomp')
   omp = declare_dependency(
