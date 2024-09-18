@@ -22,7 +22,7 @@ dependencies = [
 
 [tool.cibuildwheel]
 archs = "auto64"
-skip = "pp*"
+skip = "pp* cp38-macosx_*"
 test-requires = "scipy"
 test-skip = "cp38-musllinux_*"
 test-command = [
