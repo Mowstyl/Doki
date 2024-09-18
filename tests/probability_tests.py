@@ -3,6 +3,7 @@ import doki as doki
 import numpy as np
 import os
 import sys
+import time as t
 
 from reg_creation_tests import doki_to_np
 
@@ -67,9 +68,11 @@ def main():
             print("\tNumber of threads:", num_threads)
         rtol = 0
         atol = 1e-13
+        a = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             test_probability(nq, rtol, atol, num_threads)
-        print("\tPEACE AND TRANQUILITY")
+        b = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {b - a}")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

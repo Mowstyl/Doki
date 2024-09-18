@@ -2,6 +2,7 @@
 import doki
 import numpy as np
 import sys
+import time as t
 
 
 def check_density_matrix(num_qubits):
@@ -62,13 +63,18 @@ def main():
         elif (min_qubits > max_qubits):
             raise ValueError("minimum can't be greater than maximum")
         print("Density matrix tests...")
+        a = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             check_density_matrix(nq)
+        b = t.time()
+        c, d = 0, 0
         if max_qubits > 1:
             print("\tPartial trace tests...")
+            c = t.time()
             for nq in range(max(2, min_qubits), max_qubits + 1):
                 check_partial_trace(nq)
-        print("\tPEACE AND TRANQUILITY")
+            d = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c)} s")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

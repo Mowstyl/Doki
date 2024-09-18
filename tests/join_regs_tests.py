@@ -3,6 +3,7 @@ import doki as doki
 import numpy as np
 import os
 import sys
+import time as t
 
 from reg_creation_tests import doki_to_np
 from one_gate_tests import U_doki
@@ -91,8 +92,10 @@ def main():
             print("\tNumber of threads:", num_threads)
         rtol = 0
         atol = 1e-13
+        a = t.time()
         test_random_join(num_qubits, rtol, atol, num_threads)
-        print("\tPEACE AND TRANQUILITY")
+        b = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {b - a} s")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <number of qubits (min 2)>" +

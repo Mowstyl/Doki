@@ -3,6 +3,7 @@ import doki as doki
 import numpy as np
 import os
 import sys
+import time as t
 
 from reg_creation_tests import doki_to_np
 
@@ -15,7 +16,7 @@ def phase_doki(angle):
 
 def test_canonical_apply(nq, rtol, atol, num_threads):
     """Test canonical get with nq qubit registries after gate apply."""
-    print("\tTesting get after apply")
+    # print("\tTesting get after apply")
     gates = [phase_doki(np.pi * (np.random.rand() * 2 - 1)) for i in range(nq)]
     reg = doki.registry_new(nq, False)
     npreg = doki_to_np(reg, nq, canonical=False)
@@ -35,7 +36,7 @@ def test_canonical_apply(nq, rtol, atol, num_threads):
                            npreg,
                            rtol=rtol, atol=atol):
             raise AssertionError("Failed canonical get after operating")
-    print("\tTesting get after measure (apply)")
+    # print("\tTesting get after measure (apply)")
     for i in range(nq - 1):
         aux, _ = doki.registry_measure(reg, 1, [np.random.rand()],
                                        num_threads, False)
@@ -52,7 +53,7 @@ def test_canonical_apply(nq, rtol, atol, num_threads):
 
 def test_canonical_join_mes(nq, rtol, atol, num_threads):
     """Test canonical get with nq qubit registries after join and measure."""
-    print("\tTesting get after join")
+    # print("\tTesting get after join")
     gates = [phase_doki(np.pi * (np.random.rand() * 2 - 1)) for i in range(nq)]
     rawregs = [doki.registry_new(1, False) for i in range(nq)]
     regs = [doki.registry_apply(rawregs[i], gates[i], [0], None, None,
@@ -74,7 +75,7 @@ def test_canonical_join_mes(nq, rtol, atol, num_threads):
             raise AssertionError("Failed canonical get on joined state")
     for i in range(nq):
         del regs[nq - i - 1]
-    print("\tTesting get after measure (join)")
+    # print("\tTesting get after measure (join)")
     for i in range(nq - 1):
         aux, _ = doki.registry_measure(joined, 1, [np.random.rand()],
                                        num_threads, False)
@@ -126,11 +127,13 @@ def main():
             print("\tNumber of threads:", num_threads)
         rtol = 0
         atol = 1e-13
+        a = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             test_canonical_apply(nq, rtol, atol, num_threads)
             if nq > 1:
                 test_canonical_join_mes(nq, rtol, atol, num_threads)
-        print("\tPEACE AND TRANQUILITY")
+        b = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {(b - a)} s")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

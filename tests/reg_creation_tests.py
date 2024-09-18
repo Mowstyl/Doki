@@ -2,6 +2,7 @@
 import doki as doki
 import numpy as np
 import sys
+import time as t
 
 
 def gen_reg(nq, with_data=False):
@@ -69,12 +70,18 @@ def main():
             print("\tSeed:", seed)
         np.random.seed(seed)
         print("\tEmpty initialization tests...")
+        a = t.time()
         res = check_range(min_qubits, max_qubits)
+        b = t.time()
         print("\tRegistry list initialization tests...")
+        c = t.time()
         res = check_range(min_qubits, max_qubits, with_data=True, with_lists=True)
+        d = t.time()
         print("\tRegistry numpy initialization tests...")
+        e = t.time()
         res = check_range(min_qubits, max_qubits, with_data=True)
-        print("\tPEACE AND TRANQUILITY")
+        f = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c) + (f - e)}")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +

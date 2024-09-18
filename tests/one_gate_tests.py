@@ -4,6 +4,7 @@ import numpy as np
 import os
 import scipy.sparse as sparse
 import sys
+import time as t
 
 from reg_creation_tests import gen_reg, doki_to_np
 
@@ -144,8 +145,10 @@ def main():
             elif num_threads <= 0:
                 raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
             print("\tNumber of threads:", num_threads)
+        a = t.time()
         one_gate_range(min_qubits, max_qubits, num_threads)
-        print("\tPEACE AND TRANQUILITY")
+        b = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {b - a}")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +
