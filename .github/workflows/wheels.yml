@@ -47,6 +47,7 @@ jobs:
         if: startsWith(matrix.os, 'macOS')
         run: |
              OMP_VERSION=$(ls /opt/homebrew/Cellar/libomp || echo "latest")
+             export SYSTEM_VERSION_COMPAT=0
              export MACOSX_DEPLOYMENT_TARGET=12.0
              export CIBW_ENVIRONMENT_MACOS="LDFLAGS=\"-L/opt/homebrew/Cellar/libomp/$OMP_VERSION/lib -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib\" CFLAGS=\"-I/opt/homebrew/Cellar/libomp/$OMP_VERSION/include -I/opt/homebrew/opt/libomp/include -I/usr/local/opt/libomp/include\""
              python -m cibuildwheel --output-dir wheelhouse
