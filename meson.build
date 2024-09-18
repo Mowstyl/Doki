@@ -14,16 +14,7 @@ project(
   ]
 )
 
-if host_machine.system() != 'darwin'
-  omp = dependency('openmp')
-else
-  libomp = meson.get_compiler('c').find_library('libomp')
-  omp = declare_dependency(
-    compile_args:['-Xpreprocessor', '-fopenmp'],
-    dependencies : [libomp]
-  )
-endif
-
+omp = dependency('openmp')
 
 py = import('python').find_installation(pure: false)
 
