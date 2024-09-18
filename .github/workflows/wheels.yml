@@ -46,6 +46,7 @@ jobs:
                export SYSTEM_VERSION_COMPAT=0
              fi
              python -m pip install cibuildwheel
+        shell: bash
 
       - name: Build wheels on macOS
         if: startsWith(matrix.os, 'macOS')
