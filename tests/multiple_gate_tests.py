@@ -4,6 +4,7 @@ import numpy as np
 import os
 import scipy.sparse as sparse
 import sys
+import time as t
 
 from reg_creation_tests import gen_reg, doki_to_np
 from one_gate_tests import Identity, U_np, U_sparse, U_doki, \
@@ -264,12 +265,16 @@ def main():
         rtol = 0
         atol = 1e-13
         print("\tControlled gate application tests...")
+        a = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             controlled_tests(nq, rtol, atol, num_threads)
+        b = t.time()
         print("\tMultiple target gate application tests...")
+        c = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             multiple_target_tests(nq, rtol, atol, num_threads)
-        print("\tPEACE AND TRANQUILITY")
+        d = t.time()
+        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c)} s")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 2)>" +

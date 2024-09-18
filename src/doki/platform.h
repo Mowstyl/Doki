@@ -169,16 +169,16 @@
 #include <stdlib.h>
 
 #if defined(_MSC_VER)
-#define ALIGNED_(x) __declspec (align (x))
+#define ALIGNED_(x) __declspec(align(x))
 #else
 #if defined(__GNUC__)
-#define ALIGNED_(x) __attribute__ ((aligned (x)))
+#define ALIGNED_(x) __attribute__((aligned(x)))
 #endif
 #endif
 
-#define MALLOC_TYPE(n, type) ((type *)malloc ((n) * sizeof (type)))
-#define CALLOC_TYPE(n, type) ((type *)calloc ((n), sizeof (type)))
-#define REALLOC_TYPE(p, n, type) ((type *)realloc ((p), (n) * sizeof (type)))
+#define MALLOC_TYPE(n, type) ((type *)malloc((n) * sizeof(type)))
+#define CALLOC_TYPE(n, type) ((type *)calloc((n), sizeof(type)))
+#define REALLOC_TYPE(p, n, type) ((type *)realloc((p), (n) * sizeof(type)))
 
 #define NATURAL_TYPE intmax_t
 #ifdef _MSC_VER
@@ -189,13 +189,13 @@
 #define NATURAL_ZERO 0ULL
 #define NATURAL_ONE 1ULL
 #define NATURAL_MAX INTMAX_MAX
-static const unsigned int NATURAL_BITS = sizeof (NATURAL_TYPE) * 8 - 1;
+static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 
-#define DECIMAL_PLACES 5     // max: 17 (MinGWx64-gcc)
+#define DECIMAL_PLACES 5 // max: 17 (MinGWx64-gcc)
 #define DECIMAL_PLACES_S "5" // same as before, but as a string
-#define NOTATION                                                              \
-  "g" // f for normal behaviour, e for scientific notation, g for shortest (f
-      // or e)
+#define NOTATION                                                                    \
+	"g" // f for normal behaviour, e for scientific notation, g for shortest (f \
+		// or e)
 #define PRECISION 2
 #if PRECISION == 1
 #define REAL_TYPE float
@@ -249,15 +249,15 @@ static const COMPLEX_TYPE COMPLEX_NAN = { NAN, NAN };
 #endif
 
 #define COMPLEX_STRING_FORMAT REAL_STRING_FORMAT "+" REAL_STRING_FORMAT "i"
-#define COMPLEX_STRING(c) RE (c), IM (c)
-static const unsigned int REAL_BITS = sizeof (REAL_TYPE) * 8;
-static const unsigned int COMPLEX_BITS = sizeof (COMPLEX_TYPE) * 8;
-static const size_t COMPLEX_ARRAY_SIZE = ((size_t)-1) / sizeof (COMPLEX_TYPE);
-static const size_t NATURAL_ARRAY_SIZE = ((size_t)-1) / sizeof (NATURAL_TYPE);
-static const size_t COMPLEX_2DARRAY_SIZE
-    = ((size_t)-1) / sizeof (COMPLEX_TYPE *);
-static const size_t NATURAL_2DARRAY_SIZE
-    = ((size_t)-1) / sizeof (NATURAL_TYPE *);
+#define COMPLEX_STRING(c) RE(c), IM(c)
+static const unsigned int REAL_BITS = sizeof(REAL_TYPE) * 8;
+static const unsigned int COMPLEX_BITS = sizeof(COMPLEX_TYPE) * 8;
+static const size_t COMPLEX_ARRAY_SIZE = ((size_t)-1) / sizeof(COMPLEX_TYPE);
+static const size_t NATURAL_ARRAY_SIZE = ((size_t)-1) / sizeof(NATURAL_TYPE);
+static const size_t COMPLEX_2DARRAY_SIZE =
+	((size_t)-1) / sizeof(COMPLEX_TYPE *);
+static const size_t NATURAL_2DARRAY_SIZE =
+	((size_t)-1) / sizeof(NATURAL_TYPE *);
 
 /*
 #define _AUX1_MAX_NUM_QUBITS log2_64(COMPLEX_ARRAY_SIZE) +
@@ -267,7 +267,7 @@ log2_64(COMPLEX_2DARRAY_SIZE)
 #define MAX_NUM_QUBITS _AUX1_MAX_NUM_QUBITS <= _AUX2_MAX_NUM_QUBITS ?
 _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 */
-#define MAX_NUM_QUBITS log2_64 (NATURAL_MAX)
+#define MAX_NUM_QUBITS log2_64(NATURAL_MAX)
 
 /**
  * Since VS compiler does not fully comply with C99 standard
@@ -277,81 +277,79 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #ifndef _MSC_VER
 #define COMPLEX_INIT(real, imag) real + I *imag
 #else
-#define COMPLEX_INIT(real, imag)                                              \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    real, imag                                                                \
-  }
+#define COMPLEX_INIT(real, imag) \
+	(COMPLEX_TYPE)           \
+	{                        \
+		real, imag       \
+	}
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_ADD(a, b) a + b
 #else
-#define COMPLEX_ADD(a, b)                                                     \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    RE (a) + RE (b), IM (a) + IM (b)                                          \
-  }
+#define COMPLEX_ADD(a, b)                    \
+	(COMPLEX_TYPE)                       \
+	{                                    \
+		RE(a) + RE(b), IM(a) + IM(b) \
+	}
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_SUB(a, b) a - b
 #else
-#define COMPLEX_SUB(a, b)                                                     \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    RE (a) - RE (b), IM (a) - IM (b)                                          \
-  }
+#define COMPLEX_SUB(a, b)                    \
+	(COMPLEX_TYPE)                       \
+	{                                    \
+		RE(a) - RE(b), IM(a) - IM(b) \
+	}
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_MULT(a, b) a *b
 #else
-#define COMPLEX_MULT(a, b)                                                    \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    RE (a) * RE (b) - IM (a) * IM (b), RE (a) * IM (b) + RE (b) * IM (a)      \
-  }
+#define COMPLEX_MULT(a, b)                                                   \
+	(COMPLEX_TYPE)                                                       \
+	{                                                                    \
+		RE(a) * RE(b) - IM(a) * IM(b), RE(a) * IM(b) + RE(b) * IM(a) \
+	}
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_MULT_R(a, r) a *r
 #else
-#define COMPLEX_MULT_R(a, r)                                                  \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    RE (a) * r, IM (a) * r                                                    \
-  }
+#define COMPLEX_MULT_R(a, r)         \
+	(COMPLEX_TYPE)               \
+	{                            \
+		RE(a) * r, IM(a) * r \
+	}
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_DIV(res, a, b) res = a / b
 #else
-#define COMPLEX_DIV(res, a, b)                                                \
-  do                                                                          \
-    {                                                                         \
-      REAL_TYPE ar = RE (a), ai = IM (a), br = RE (b), bi = IM (b);           \
-      REAL_TYPE divi = br * br + bi * bi;                                     \
-      res = (COMPLEX_TYPE){ (ar * br + ai * bi) / divi,                       \
-                            (ai * br - ar * bi) / divi };                     \
-    }                                                                         \
-  while (0)
+#define COMPLEX_DIV(res, a, b)                                            \
+	do {                                                              \
+		REAL_TYPE ar = RE(a), ai = IM(a), br = RE(b), bi = IM(b); \
+		REAL_TYPE divi = br * br + bi * bi;                       \
+		res = (COMPLEX_TYPE){ (ar * br + ai * bi) / divi,         \
+				      (ai * br - ar * bi) / divi };       \
+	} while (0)
 #endif
 
 #ifndef _MSC_VER
 #define COMPLEX_DIV_R(a, r) a / r
 #else
-#define COMPLEX_DIV_R(a, r)                                                   \
-  (COMPLEX_TYPE)                                                              \
-  {                                                                           \
-    RE (a) / r, IM (a) / r                                                    \
-  }
+#define COMPLEX_DIV_R(a, r)          \
+	(COMPLEX_TYPE)               \
+	{                            \
+		RE(a) / r, IM(a) / r \
+	}
 #endif
 
 COMPLEX_TYPE
-fix_value (COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
-           REAL_TYPE max_i);
+fix_value(COMPLEX_TYPE a, REAL_TYPE min_r, REAL_TYPE min_i, REAL_TYPE max_r,
+	  REAL_TYPE max_i);
 
-unsigned int log2_64 (uint64_t value);
+unsigned int log2_64(uint64_t value);
 
 #endif /* PLATFORM_H_ */

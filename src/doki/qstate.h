@@ -41,22 +41,21 @@
 #include "platform.h"
 #include <stdbool.h>
 
-struct state_vector
-{
-  /* total size of the vector */
-  NATURAL_TYPE size;
-  /* number of chunks */
-  size_t num_chunks;
-  /* number of qubits in this quantum system */
-  unsigned int num_qubits;
-  /* partial vector */
-  COMPLEX_TYPE **vector;
-  /* normalization constant */
-  REAL_TYPE norm_const;
-  /* fcarg initialized */
-  bool fcarg_init;
-  /* first complex argument */
-  REAL_TYPE fcarg;
+struct state_vector {
+	/* total size of the vector */
+	NATURAL_TYPE size;
+	/* number of chunks */
+	size_t num_chunks;
+	/* number of qubits in this quantum system */
+	unsigned int num_qubits;
+	/* partial vector */
+	COMPLEX_TYPE **vector;
+	/* normalization constant */
+	REAL_TYPE norm_const;
+	/* fcarg initialized */
+	bool fcarg_init;
+	/* first complex argument */
+	REAL_TYPE fcarg;
 };
 
 /** \fn unsigned char state_init(struct state_vector *this, unsigned int
@@ -67,8 +66,8 @@ struct state_vector
  *  \return 0 if ok, 1 if failed to allocate vector, 2 if failed to allocate
  * any chunk, 3 if num_qubits > MAX_NUM_QUBITS.
  */
-unsigned char state_init (struct state_vector *this, unsigned int num_qubits,
-                          int init);
+unsigned char state_init(struct state_vector *this, unsigned int num_qubits,
+			 bool init);
 
 /** \fn unsigned char state_clone(struct state_vector *dest, struct
  * state_vector *source); \brief Clone a state vector structure. \param dest
@@ -77,16 +76,15 @@ unsigned char state_init (struct state_vector *this, unsigned int num_qubits,
  * be cloned. \return 0 if ok, 1 if failed to allocate dest vector, 2 if failed
  * to allocate any chunk.
  */
-unsigned char state_clone (struct state_vector *dest,
-                           struct state_vector *source);
+unsigned char state_clone(struct state_vector *dest,
+			  struct state_vector *source);
 
-void state_clear (struct state_vector *this);
+void state_clear(struct state_vector *this);
 
-void state_set (struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
+void state_set(struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
 
-COMPLEX_TYPE
-state_get (struct state_vector *this, NATURAL_TYPE i);
+COMPLEX_TYPE state_get(struct state_vector *this, NATURAL_TYPE i);
 
-size_t state_mem_size (struct state_vector *this);
+size_t state_mem_size(struct state_vector *this);
 
 #endif /* QSTATE_H_ */
