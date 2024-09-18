@@ -71,22 +71,24 @@ REAL_TYPE get_global_phase(struct state_vector *state)
 
 REAL_TYPE probability(struct state_vector *state, unsigned int target_id)
 {
-	NATURAL_TYPE i, j, mask, mask2;
+	NATURAL_TYPE i, index, qty, low, high, target;
 	REAL_TYPE value;
 	COMPLEX_TYPE val;
 
+	qty = state->size >> 1;
+	target = NATURAL_ONE << target_id;
+	low = target - 1;
+	high = ~low;
+
 	value = 0;
-	mask = NATURAL_ONE << target_id;
-	mask2 = mask << 1;
 #pragma omp parallel for reduction (+:value) \
                              default (none) \
-                             shared (state, mask, mask2, target_id) \
-                             private (i, j, val)
-	for (i = mask; i < state->size; i += mask2) {
-		for (j = 0; j < mask; j++) {
-			val = state_get(state, i + j);
-			value += RE(val) * RE(val) + IM(val) * IM(val);
-		}
+                             shared (state, qty, low, high, target) \
+                             private (i, index, val)
+	for (i = 0; i < qty; i++) {
+		index = ((i & high) << 1) + target + (i & low);
+		val = state_get(state, index);
+		value += RE(val) * RE(val) + IM(val) * IM(val);
 	}
 
 	return value;
@@ -278,8 +280,8 @@ _densityFun(NATURAL_TYPE i, NATURAL_TYPE j,
 
 	elem_i = state_get(state, i);
 	elem_j = state_get(state, j);
-	// printf("state[%lld] = " COMPLEX_STRING_FORMAT "\n", i,
-	// COMPLEX_STRING(elem_i)); printf("state[%lld] = " COMPLEX_STRING_FORMAT
+	// printf("state[" NATURAL_STRING_FORMAT "] = " COMPLEX_STRING_FORMAT "\n", i,
+	// COMPLEX_STRING(elem_i)); printf("state[" NATURAL_STRING_FORMAT "] = " COMPLEX_STRING_FORMAT
 	// "\n", j, COMPLEX_STRING(elem_i));
 	result = COMPLEX_MULT(elem_i, conj(elem_j));
 	// printf("result = " COMPLEX_STRING_FORMAT "\n", COMPLEX_STRING(result));
@@ -496,7 +498,8 @@ _ApplyGateFunction(NATURAL_TYPE i,
 		if (!(i & mask)) {
 			res = getitem(data->state, i, 0, &val);
 			if (res != 0) {
-				printf("Error[C] %d while getting state item %llu\n",
+				printf("Error[C] %d while getting state item " NATURAL_STRING_FORMAT
+				       "\n",
 				       res, i);
 				return COMPLEX_NAN;
 			}
@@ -509,7 +512,8 @@ _ApplyGateFunction(NATURAL_TYPE i,
 		if (i & mask) {
 			res = getitem(data->state, i, 0, &val);
 			if (res != 0) {
-				printf("Error[A] %d while getting state item %llu\n",
+				printf("Error[A] %d while getting state item " NATURAL_STRING_FORMAT
+				       "\n",
 				       res, i);
 				return COMPLEX_NAN;
 			}
@@ -537,13 +541,15 @@ _ApplyGateFunction(NATURAL_TYPE i,
 		}
 		res = getitem(data->state, reg_index, 0, &aux);
 		if (res != 0) {
-			printf("Error[T] %d while getting state[%llu] item %llu\n",
+			printf("Error[T] %d while getting state[" NATURAL_STRING_FORMAT
+			       "] item " NATURAL_STRING_FORMAT "\n",
 			       res, i, reg_index);
 			return COMPLEX_NAN;
 		}
 		res = getitem(data->gate, row, n, &aux2);
 		if (res != 0) {
-			printf("Error[T] %d while getting gate item %llu, %llu\n",
+			printf("Error[T] %d while getting gate item " NATURAL_STRING_FORMAT
+			       ", " NATURAL_STRING_FORMAT "\n",
 			       res, row, n);
 			return COMPLEX_NAN;
 		}

@@ -81,9 +81,9 @@ unsigned char state_clone(struct state_vector *dest,
 
 void state_clear(struct state_vector *this);
 
-void state_set(struct state_vector *this, NATURAL_TYPE i, COMPLEX_TYPE value);
+#define state_set(this, i, value) (this)->vector[(i) / COMPLEX_ARRAY_SIZE][(i) % COMPLEX_ARRAY_SIZE] = value
 
-COMPLEX_TYPE state_get(struct state_vector *this, NATURAL_TYPE i);
+#define state_get(this, i) (COMPLEX_DIV_R((this)->vector[(i) / COMPLEX_ARRAY_SIZE][(i) % COMPLEX_ARRAY_SIZE], (this)->norm_const))
 
 size_t state_mem_size(struct state_vector *this);
 
