@@ -12,6 +12,17 @@ project(
   ]
 )
 
+compiler = meson.get_compiler('c')
+if compiler.get_id() != 'msvc'
+  add_project_arguments('-Wall', language : 'c')
+  add_project_arguments('-Wextra', language : 'c')
+  # add_project_arguments('-Werror', language : 'c')
+  add_project_arguments('-pedantic', language : 'c')
+else
+  add_project_arguments('-Wall', language : 'c')
+  # add_project_arguments('-WX', language : 'c')
+endif
+
 if host_machine.system() != 'darwin'
   omp = dependency('openmp')
 else

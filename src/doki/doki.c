@@ -1293,7 +1293,7 @@ static PyObject *doki_registry_mem(PyObject *self, PyObject *args)
 static PyObject *doki_funmatrix_create(PyObject *self, PyObject *args)
 {
 	PyObject *list, *row, *raw_val;
-	unsigned int num_rows, num_cols;
+	Py_ssize_t num_rows, num_cols;
 	NATURAL_TYPE size, i, j;
 	COMPLEX_TYPE val, *matrix_2d;
 	struct FMatrix *funmatrix;

@@ -182,12 +182,12 @@
 
 #define NATURAL_TYPE intmax_t
 #ifdef _MSC_VER
-#define NATURAL_STRING_FORMAT "%lld"
+#define NATURAL_STRING_FORMAT "%jd"
 #else
 #define NATURAL_STRING_FORMAT "%j"
 #endif
-#define NATURAL_ZERO 0ULL
-#define NATURAL_ONE 1ULL
+#define NATURAL_ZERO 0LL
+#define NATURAL_ONE 1LL
 #define NATURAL_MAX INTMAX_MAX
 static const unsigned int NATURAL_BITS = sizeof(NATURAL_TYPE) * 8 - 1;
 
@@ -275,7 +275,7 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
  * numbers.
  */
 #ifndef _MSC_VER
-#define COMPLEX_INIT(real, imag) real + I *imag
+#define COMPLEX_INIT(real, imag) (real) + I * (imag)
 #else
 #define COMPLEX_INIT(real, imag) \
 	(COMPLEX_TYPE)           \
@@ -285,7 +285,7 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_ADD(a, b) a + b
+#define COMPLEX_ADD(a, b) (a) + (b)
 #else
 #define COMPLEX_ADD(a, b)                    \
 	(COMPLEX_TYPE)                       \
@@ -295,7 +295,7 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_SUB(a, b) a - b
+#define COMPLEX_SUB(a, b) (a) - (b)
 #else
 #define COMPLEX_SUB(a, b)                    \
 	(COMPLEX_TYPE)                       \
@@ -305,7 +305,7 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_MULT(a, b) a *b
+#define COMPLEX_MULT(a, b) (a) * (b)
 #else
 #define COMPLEX_MULT(a, b)                                                   \
 	(COMPLEX_TYPE)                                                       \
@@ -315,17 +315,17 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_MULT_R(a, r) a *r
+#define COMPLEX_MULT_R(a, r) (a) * (r)
 #else
 #define COMPLEX_MULT_R(a, r)         \
 	(COMPLEX_TYPE)               \
 	{                            \
-		RE(a) * r, IM(a) * r \
+		RE(a) * (r), IM(a) * (r) \
 	}
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_DIV(res, a, b) res = a / b
+#define COMPLEX_DIV(res, a, b) res = (a) / (b)
 #else
 #define COMPLEX_DIV(res, a, b)                                            \
 	do {                                                              \
@@ -337,12 +337,12 @@ _AUX1_MAX_NUM_QUBITS : _AUX2_MAX_NUM_QUBITS
 #endif
 
 #ifndef _MSC_VER
-#define COMPLEX_DIV_R(a, r) a / r
+#define COMPLEX_DIV_R(a, r) (a) / (r)
 #else
 #define COMPLEX_DIV_R(a, r)          \
 	(COMPLEX_TYPE)               \
 	{                            \
-		RE(a) / r, IM(a) / r \
+		RE(a) / (r), IM(a) / (r) \
 	}
 #endif
 
