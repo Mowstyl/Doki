@@ -22,8 +22,9 @@ dependencies = [
 
 [tool.cibuildwheel]
 archs = "auto64"
-skip = "pp* cp38-musllinux_*"
+skip = "pp*"
 test-requires = "scipy"
+test-skip = "cp38-musllinux_*"
 test-command = [
   "python {package}/tests/reg_creation_tests.py 1 5",
   "python {package}/tests/one_gate_tests.py 1 5 1",
