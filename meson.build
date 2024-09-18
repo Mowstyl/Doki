@@ -5,23 +5,14 @@ project(
   license: 'GPL-3.0-or-later',
   meson_version: '>=1.2.99',
   default_options: [
-    'buildtype=debugoptimized',
+    'buildtype=release',
     'b_ndebug=if-release',
     'c_std=c11',
+    'warning_level=everything',
+    'werror=false',
     'pkgconfig.relocatable=true',
   ]
 )
-
-compiler = meson.get_compiler('c')
-if compiler.get_id() != 'msvc'
-  add_project_arguments('-Wall', language : 'c')
-  add_project_arguments('-Wextra', language : 'c')
-  # add_project_arguments('-Werror', language : 'c')
-  add_project_arguments('-pedantic', language : 'c')
-else
-  add_project_arguments('-Wall', language : 'c')
-  # add_project_arguments('-WX', language : 'c')
-endif
 
 if host_machine.system() != 'darwin'
   omp = dependency('openmp')
