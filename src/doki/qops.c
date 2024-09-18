@@ -71,19 +71,20 @@ REAL_TYPE get_global_phase(struct state_vector *state)
 
 REAL_TYPE probability(struct state_vector *state, unsigned int target_id)
 {
-	NATURAL_TYPE i, mask;
+	NATURAL_TYPE i, j, mask, mask2;
 	REAL_TYPE value;
 	COMPLEX_TYPE val;
 
 	value = 0;
 	mask = NATURAL_ONE << target_id;
+	mask2 = mask << 1;
 #pragma omp parallel for reduction (+:value) \
                              default (none) \
-                             shared (state, mask, target_id) \
-                             private (i, val)
-	for (i = mask; i < state->size; ++i) {
-		if (i & mask) {
-			val = state_get(state, i);
+                             shared (state, mask, mask2, target_id) \
+                             private (i, j, val)
+	for (i = mask; i < state->size; i += mask2) {
+		for (j = 0; j < mask; j++) {
+			val = state_get(state, i + j);
 			value += RE(val) * RE(val) + IM(val) * IM(val);
 		}
 	}
@@ -117,7 +118,7 @@ unsigned char join(struct state_vector *r, struct state_vector *s1,
 	return 0;
 }
 
-unsigned char measure(struct state_vector *state, _Bool *result,
+unsigned char measure(struct state_vector *state, bool *result,
 		      unsigned int target, struct state_vector *new_state,
 		      REAL_TYPE roll)
 {
@@ -132,14 +133,11 @@ unsigned char measure(struct state_vector *state, _Bool *result,
 }
 
 unsigned char collapse(struct state_vector *state, unsigned int target_id,
-		       _Bool value, REAL_TYPE prob_one,
+		       bool value, REAL_TYPE prob_one,
 		       struct state_vector *new_state)
 {
 	unsigned char exit_code;
-	NATURAL_TYPE i, j, count, step;
-	_Bool toggle;
-	REAL_TYPE norm_const;
-	COMPLEX_TYPE aux;
+	NATURAL_TYPE i, j, low, high, val;
 
 	if (state->num_qubits == 1) {
 		new_state->vector = NULL;
@@ -152,24 +150,21 @@ unsigned char collapse(struct state_vector *state, unsigned int target_id,
 		free(new_state);
 		return exit_code;
 	}
-	norm_const = value ? prob_one : 1 - prob_one;
-	toggle = value;
-	count = 0;
-	step = NATURAL_ONE << target_id;
-	j = 0;
-	for (i = value ? step : 0; i < state->size; i++) {
-		if (toggle == value) {
-			aux = state_get(state, i);
-			state_set(new_state, j, aux);
-			j++;
-		}
-		count++;
-		if (count == step) {
-			count = 0;
-			toggle = !toggle;
-		}
+	val = NATURAL_ONE << target_id;
+	low = val - 1;
+	high = ~low;
+	if (!value) {
+		prob_one = 1 - prob_one;
+		val = 0;
 	}
-	new_state->norm_const = sqrt(norm_const);
+
+#pragma omp parallel for default(none) \
+	shared(state, new_state, low, high, val) private(i, j)
+	for (j = 0; j < new_state->size; j++) {
+		i = ((j & high) << 1) + val + (j & low);
+		state_set(new_state, j, state_get(state, i));
+	}
+	new_state->norm_const = sqrt(prob_one);
 
 	return 0;
 }

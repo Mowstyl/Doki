@@ -28,7 +28,7 @@
 unsigned char join(struct state_vector *r, struct state_vector *s1,
 		   struct state_vector *s2);
 
-unsigned char measure(struct state_vector *state, _Bool *result,
+unsigned char measure(struct state_vector *state, bool *result,
 		      unsigned int target, struct state_vector *new_state,
 		      REAL_TYPE roll);
 
@@ -36,7 +36,7 @@ REAL_TYPE probability(struct state_vector *state, unsigned int target_id);
 
 REAL_TYPE get_global_phase(struct state_vector *state);
 
-unsigned char collapse(struct state_vector *state, unsigned int id, _Bool value,
+unsigned char collapse(struct state_vector *state, unsigned int id, bool value,
 		       REAL_TYPE prob_one, struct state_vector *new_state);
 
 unsigned char apply_gate(struct state_vector *state, struct qgate *gate,
