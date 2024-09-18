@@ -46,6 +46,8 @@ jobs:
       - name: Build wheels on macOS
         if: startsWith(matrix.os, 'macOS')
         run: |
+             ls /opt/homebrew/opt/libomp
+             ls /usr/local/opt/libomp
              OMP_VERSION=$(ls /opt/homebrew/Cellar/libomp)
              export MACOSX_DEPLOYMENT_TARGET=12.0
              export CIBW_ENVIRONMENT_MACOS="LDFLAGS=\"-L/opt/homebrew/Cellar/libomp/$OMP_VERSION/lib\" CFLAGS=\"-I/opt/homebrew/Cellar/libomp/$OMP_VERSION/include\""
