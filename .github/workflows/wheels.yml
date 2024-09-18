@@ -34,6 +34,7 @@ jobs:
              elif [ "$RUNNER_OS" == "macOS" ]; then
                #brew install llvm
                brew install libomp
+               ls -al /opt/homebrew/Cellar/libomp
              else
                echo "$RUNNER_OS not supported"
                exit 1
