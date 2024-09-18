@@ -5,6 +5,7 @@ import numpy as np
 import os
 import scipy.sparse as sparse
 import sys
+import time as t
 
 from one_gate_tests import apply_np, apply_gate
 from reg_creation_tests import gen_reg, doki_to_np
@@ -201,18 +202,22 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
 
 def check_measure_superposition(num_qubits, rtol, atol, num_threads,
                                 iterations=1000,
-                                bounds=[.3, .4, .4, .45, .55, .6, .6, .7]):
+                                bounds=[.3, .4, .4, .45, .55, .6, .6, .7],
+                                verbose=False):
     """Test measurement with specified number of qubits and Hadamards."""
     h_e_doki, h_e_sp = get_H_e(num_qubits)
     r_doki, r_np = check_build(num_qubits, h_e_doki, h_e_sp,
                                rtol, atol, num_threads)
-    print("\t\tTesting mask = 0")
+    if verbose:
+        print("\t\tTesting mask = 0")
     check_nothing(num_qubits, r_doki, rtol, atol, num_threads)
     if (num_qubits > 1):
-        print("\t\tTesting mask = half")
+        if verbose:
+            print("\t\tTesting mask = half")
         check_half(num_qubits, h_e_sp, r_doki, rtol, atol, iterations, bounds,
                    num_threads)
-    print("\t\tTesting mask = max")
+    if verbose:
+        print("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol, iterations, bounds,
                      num_threads)
     del r_doki
@@ -220,7 +225,7 @@ def check_measure_superposition(num_qubits, rtol, atol, num_threads,
 
 
 def check_measure_classic(num_qubits, rtol, atol, num_threads,
-                          iterations=1000):
+                          iterations=1000, verbose=False):
     """Test measurement with specified number of qubits and X gates."""
     raw_x = [[0, 1], [1, 0]]
     x_sp = sparse.csr_matrix(raw_x)
@@ -231,11 +236,13 @@ def check_measure_classic(num_qubits, rtol, atol, num_threads,
     # print(values)
     r_doki, r_np = check_build(num_qubits, x_d_list, x_sp_list,
                                rtol, atol, num_threads)
-    print("\t\tTesting mask = max")
+    if verbose:
+        print("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol,
                      iterations, None, num_threads, values[::-1])
     if (num_qubits > 1):
-        print("\t\tTesting mask = half")
+        if verbose:
+            print("\t\tTesting mask = half")
         check_half(num_qubits, x_sp_list, r_doki, rtol, atol,
                    iterations, None, num_threads, values[::-1])
     del r_doki
@@ -246,6 +253,7 @@ def main():
     """Execute all tests."""
     argv = sys.argv[1:]
     seed = None
+    verbose = False
     num_threads = None
     iterations = 1000
     if 2 <= len(argv) <= 4:
@@ -257,6 +265,14 @@ def main():
             num_threads = int(argv[3])
         if len(argv) >= 5:
             seed = int(argv[4])
+        if len(argv) >= 6:
+            aux = argv[5].lower()
+            if aux == "false":
+                verbose = False
+            elif aux == "true":
+                verbose = True
+            else:
+                raise ValueError("verbose must be either True or False")
         if (min_qubits < 1):
             raise ValueError("minimum number of qubits must be at least 1")
         elif (min_qubits > max_qubits):
@@ -285,21 +301,26 @@ def main():
         rtol = 0
         atol = 1e-13
         print("\tSuperposition tests...")
+        a = t.time()
         for nq in range(min_qubits, max_qubits + 1):
             check_measure_superposition(nq, rtol, atol,
-                                        num_threads, iterations)
+                                        num_threads, iterations, verbose=verbose)
+        b = t.time()
         gc.collect()
         print("\tClassic tests...")
+        c = t.time()
         for nq in range(min_qubits, max_qubits + 1):
-            check_measure_classic(nq, rtol, atol, num_threads, iterations)
+            check_measure_classic(nq, rtol, atol, num_threads,
+                                  iterations, verbose=verbose)
+        d = t.time()
         gc.collect()
-        print("\tPEACE AND TRANQUILITY")
+        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c)} s")
     else:
         raise ValueError("Syntax: " + sys.argv[0] +
                          " <minimum number of qubits (min 1)>" +
                          " <maximum number of qubits>" +
                          " <iterations=1000> <number of threads (optional)>" +
-                         " <seed (optional)>")
+                         " <seed (optional)> <verbose (default=false)>")
 
 
 if __name__ == "__main__":
