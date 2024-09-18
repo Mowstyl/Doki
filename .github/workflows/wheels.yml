@@ -34,7 +34,6 @@ jobs:
              elif [ "$RUNNER_OS" == "macOS" ]; then
                #brew install llvm
                brew install libomp
-               ls -al /opt/homebrew/Cellar/libomp
              else
                echo "$RUNNER_OS not supported"
                exit 1
@@ -48,7 +47,7 @@ jobs:
         if: startsWith(matrix.os, 'macOS')
         run: |
              ls -al /opt/homebrew/Cellar/libomp
-             export CIBW_ENVIRONMENT_MACOS="LDFLAGS=\"-L/opt/homebrew/Cellar/libomp/18.1.8\" CPPFLAGS=\"-I/opt/homebrew/Cellar/libomp/18.1.8/include\""
+             export CIBW_ENVIRONMENT_MACOS="LDFLAGS=\"-L/opt/homebrew/Cellar/libomp/18.1.8\" CFLAGS=\"-I/opt/homebrew/Cellar/libomp/18.1.8/include\""
              python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels not on macOS
