@@ -7,7 +7,7 @@ requires = [
 
 [project]
 name = "doki-Mowstyl"
-version = "1.6.0"
+version = "1.6.1"
 description="Python interface for Doki (QSimov core)"
 long_description="Python module containing Doki, the core of QSimov quantum computer simulation platform. Written in C with OpenMP parallelism."
 readme = "README.md"
@@ -39,6 +39,8 @@ test-command = [
   "python {package}/tests/probability_tests.py 1 5 1",
   "python {package}/tests/probability_tests.py 1 5 8",
   "python {package}/tests/density_matrix_tests.py 1 5",
+  "python {package}/tests/timed_test.py -n 5 -m 24 -t 1",
+  "python {package}/tests/timed_test.py -n 5 -m 24 -t 8",
 ]
 
 #[tool.cibuildwheel.linux]

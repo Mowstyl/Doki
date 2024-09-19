@@ -97,10 +97,9 @@ unsigned char state_clone(struct state_vector *dest,
 		return exit_code;
 	}
 #pragma omp parallel for default(none) \
-	shared(source, dest, exit_code, COMPLEX_ARRAY_SIZE) private(i)
+	shared(source, dest, COMPLEX_ARRAY_SIZE) private(i)
 	for (i = 0; i < source->size; i++) {
-		dest->vector[i / COMPLEX_ARRAY_SIZE][i % COMPLEX_ARRAY_SIZE] =
-			state_get(source, i);
+		state_set(dest, i, state_get(source, i));
 	}
 	return 0;
 }

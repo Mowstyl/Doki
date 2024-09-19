@@ -83,7 +83,7 @@ REAL_TYPE probability(struct state_vector *state, unsigned int target_id)
 	value = 0;
 #pragma omp parallel for reduction (+:value) \
                              default (none) \
-                             shared (state, qty, low, high, target, COMPLEX_ARRAY_SIZE) \
+                             firstprivate (state, qty, low, high, target, COMPLEX_ARRAY_SIZE) \
                              private (i, index, val)
 	for (i = 0; i < qty; i++) {
 		index = ((i & high) << 1) + target + (i & low);
@@ -107,7 +107,7 @@ unsigned char join(struct state_vector *r, struct state_vector *s1,
 	}
 
 #pragma omp parallel for default(none) \
-	shared(r, s1, s2, exit_code, COMPLEX_ARRAY_SIZE) \
+	firstprivate(r, s1, s2, exit_code, COMPLEX_ARRAY_SIZE) \
 	private(i, j, o1, o2, new_index)
 	for (i = 0; i < s1->size; i++) {
 		o1 = state_get(s1, i);
@@ -162,7 +162,7 @@ unsigned char collapse(struct state_vector *state, unsigned int target_id,
 	}
 
 #pragma omp parallel for default(none) \
-	shared(state, new_state, low, high, val, COMPLEX_ARRAY_SIZE) \
+	firstprivate(state, new_state, low, high, val, COMPLEX_ARRAY_SIZE) \
 	private(i, j)
 	for (j = 0; j < new_state->size; j++) {
 		i = ((j & high) << 1) + val + (j & low);
@@ -210,12 +210,12 @@ unsigned char apply_gate(struct state_vector *state, struct qgate *gate,
 	norm_const = 0;
 #pragma omp parallel for reduction (+:norm_const) \
                                      default(none) \
-                                     shared (state, new_state, gate, \
-                                             targets, num_targets, \
-                                             controls, num_controls, \
-                                             anticontrols, num_anticontrols, \
-                                             control_mask, anticontrol_mask, \
-					     COMPLEX_ZERO, COMPLEX_ARRAY_SIZE) \
+                                     firstprivate (state, new_state, gate, \
+                        			   targets, num_targets, \
+                        			   controls, num_controls, \
+                        			   anticontrols, num_anticontrols, \
+                        			   control_mask, anticontrol_mask, \
+                        			   COMPLEX_ZERO, COMPLEX_ARRAY_SIZE) \
                                      private (sum, row, reg_index, i, j, k)
 	for (i = 0; i < state->size; i++) {
 		if ((i & control_mask) == control_mask &&
