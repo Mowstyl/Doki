@@ -1,8 +1,10 @@
 """Registry initialization tests."""
+import argparse
 import doki as doki
 import numpy as np
-import sys
 import time as t
+
+from timed_test import error, init_args
 
 
 def gen_reg(nq, with_data=False):
@@ -19,74 +21,63 @@ def gen_reg(nq, with_data=False):
     return r
 
 
-def doki_to_np(r_doki, num_qubits, canonical=False):
+def doki_to_np(r_doki, num_qubits, verbose, canonical=False):
     """Return numpy array with r_doki's column vector."""
     return np.transpose(np.array([doki.registry_get(r_doki, i, canonical,
-                                                    False)
+                                                    verbose)
                                   for i in range(2**num_qubits)], ndmin=2))
 
 
-def check_generation(num_qubits, with_data=False, with_lists=False):
+def check_generation(num_qubits, verbose, with_data=False, with_lists=False):
     """Check if doki's new and get work for the specified number of qubits."""
     r_numpy = gen_reg(num_qubits, with_data=with_data)
     r_doki = None
     if with_data:
         aux = r_numpy.reshape(r_numpy.shape[0])
         if with_lists:
-            r_doki = doki.registry_new_data(num_qubits, list(aux), False)
+            r_doki = doki.registry_new_data(num_qubits, list(aux), verbose)
         else:
-            r_doki = doki.registry_new_data(num_qubits, aux, False)
+            r_doki = doki.registry_new_data(num_qubits, aux, verbose)
     else:
-        r_doki = doki.registry_new(num_qubits, False)
-    if not all(doki_to_np(r_doki, num_qubits) == r_numpy):
-        raise AssertionError("Error comparing results of two" +
-                                     " qubit gate")
+        r_doki = doki.registry_new(num_qubits, verbose)
+    if not all(doki_to_np(r_doki, num_qubits, verbose) == r_numpy):
+        error("Error comparing results of two qubit gate", fatal=True)
 
 
-def check_range(min_qubits, max_qubits, with_data=False, with_lists=False):
+def check_range(min_qubits, max_qubits, verbose, with_data=False, with_lists=False):
     """Call check_generation for the specified range of qubits."""
-    return [check_generation(nq, with_data=with_data, with_lists=with_lists)
-            for nq in range(min_qubits, max_qubits + 1)]
+    for nq in range(min_qubits, max_qubits + 1):
+        check_generation(nq, verbose, with_data=with_data, with_lists=with_lists)
 
 
-def main():
+def main(min_qubits, max_qubits, verbose):
     """Execute all tests."""
-    argv = sys.argv[1:]
-    if 2 == len(argv):
-        min_qubits = int(argv[0])
-        max_qubits = int(argv[1])
-        seed = None
-        if len(argv) >= 3:
-            seed = int(argv[2])
-        if (min_qubits < 1):
-            raise ValueError("minimum number of qubits must be at least 1")
-        elif (min_qubits > max_qubits):
-            raise ValueError("minimum can't be greater than maximum")
-        if seed is not None and (seed < 0 or seed >= 2**32):
-            raise ValueError("seed must be in [0, 2^32 - 1]")
-        print("Registry creation tests...")
-        if seed is None:
-            seed = np.random.randint(np.iinfo(np.int32).max)
-            print("\tSeed:", seed)
-        np.random.seed(seed)
-        print("\tEmpty initialization tests...")
-        a = t.time()
-        res = check_range(min_qubits, max_qubits)
-        b = t.time()
-        print("\tRegistry list initialization tests...")
-        c = t.time()
-        res = check_range(min_qubits, max_qubits, with_data=True, with_lists=True)
-        d = t.time()
-        print("\tRegistry numpy initialization tests...")
-        e = t.time()
-        res = check_range(min_qubits, max_qubits, with_data=True)
-        f = t.time()
-        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c) + (f - e)}")
-    else:
-        raise ValueError("Syntax: " + sys.argv[0] +
-                         " <minimum number of qubits (min 1)>" +
-                         " <maximum number of qubits>")
+    print("\tEmpty initialization tests...")
+    a = t.time()
+    res = check_range(min_qubits, max_qubits, verbose)
+    b = t.time()
+    print("\tRegistry list initialization tests...")
+    c = t.time()
+    res = check_range(min_qubits, max_qubits, verbose, with_data=True, with_lists=True)
+    d = t.time()
+    print("\tRegistry numpy initialization tests...")
+    e = t.time()
+    res = check_range(min_qubits, max_qubits, verbose, with_data=True)
+    f = t.time()
+    print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c) + (f - e)}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(prog="RegCreationTests",
+                                     description="Tests the creation of registries")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="whether to print extra information or not")
+    parser.add_argument("-n", "--num_qubits", type=int, required=True, help="the starting number of qubits to use")
+    parser.add_argument("-m", "--max_qubits", type=int, default=None, help="the max number of qubits to use")
+    # parser.add_argument("-t", "--num_threads", type=int, default=None, help="the number of threads to use")
+    # parser.add_argument("-i", "--iterations", type=int, default=None, help="how many times the test target has to be executed")
+    # parser.add_argument("-s", "--seed", type=int, default=None, help="sets the seed to use")
+    args = parser.parse_args()
+
+    print("Registry creation tests:")
+    prng = init_args(args)
+    main(args.num_qubits, args.max_qubits, args.verbose)

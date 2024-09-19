@@ -1,14 +1,14 @@
 """Measurement tests."""
+import argparse
 import doki as doki
 import gc
 import numpy as np
-import os
 import scipy.sparse as sparse
-import sys
 import time as t
 
 from one_gate_tests import apply_np, apply_gate
 from reg_creation_tests import gen_reg, doki_to_np
+from timed_test import debug, error, init_args
 
 
 def RZ_np(angle, invert):
@@ -23,9 +23,9 @@ def RZ_np(angle, invert):
     return gate
 
 
-def compare_no_phase(num_qubits, r_doki, r_np, rtol, atol):
+def compare_no_phase(num_qubits, r_doki, r_np, rtol, atol, verbose):
     """Compare Doki and Numpy registry ignoring hidden phase."""
-    r_d_np = doki_to_np(r_doki, num_qubits)
+    r_d_np = doki_to_np(r_doki, num_qubits, verbose)
     darg = np.angle(r_d_np[0, 0])
     r_d_np = np.power(np.e, darg * -1j) * r_d_np
     narg = np.angle(r_np[0, 0])
@@ -62,33 +62,33 @@ def build_np(gates, ids):
     return r_np
 
 
-def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol, num_threads):
+def check_build(num_qubits, h_e_doki, h_e_sp, rtol, atol, num_threads, verbose):
     """Test registry after gate application."""
-    r_doki = doki.registry_new(num_qubits, False)
+    r_doki = doki.registry_new(num_qubits, verbose)
     r_np = gen_reg(num_qubits)
     for i in range(num_qubits):
         if h_e_sp[i] is not None and h_e_doki[i] is not None:
             aux_r_n, aux_r_d = apply_gate(num_qubits, r_np, r_doki,
                                           h_e_sp[i], h_e_doki[i], i,
-                                          num_threads)
+                                          num_threads, verbose)
             del r_doki
             del r_np
             r_doki = aux_r_d
             r_np = aux_r_n
-    if not np.allclose(doki_to_np(r_doki, num_qubits), r_np,
+    if not np.allclose(doki_to_np(r_doki, num_qubits, verbose), r_np,
                        rtol=rtol, atol=atol):
-        raise AssertionError("Error applying gates")
+        error("Error applying gates", fatal=True)
     return r_doki, r_np
 
 
-def check_nothing(num_qubits, r_doki, rtol, atol, num_threads):
+def check_nothing(num_qubits, r_doki, rtol, atol, num_threads, verbose):
     """Test measurement with mask 0 for specified number of qubits."""
-    aux_r_d, m = doki.registry_measure(r_doki, 0, [], num_threads, False)
-    if (not np.allclose(doki_to_np(r_doki, num_qubits),
-                        doki_to_np(aux_r_d, num_qubits),
+    aux_r_d, m = doki.registry_measure(r_doki, 0, [], num_threads, verbose)
+    if (not np.allclose(doki_to_np(r_doki, num_qubits, verbose),
+                        doki_to_np(aux_r_d, num_qubits, verbose),
                         rtol=rtol, atol=atol)) \
             or len(m) != num_qubits or not all(x is None for x in m):
-        raise AssertionError("Error with mask 0")
+        error("Error with mask 0", fatal=True)
     del m
 
 
@@ -111,14 +111,14 @@ def check_statistics(mess, iterations, bounds):
                                  "for some qubits")
 
 
-def check_everything(num_qubits, r_doki, rtol, atol,
-                     iterations, bounds, num_threads, classic=None):
+def check_everything(num_qubits, r_doki, rtol, atol, iterations,
+                     bounds, num_threads, prng, verbose, classic=None):
     """Test measurement with max mask for specified number of qubits."""
     # if classic is not None:
-    #     print(doki_to_np(r_doki, num_qubits))
+    #     print(doki_to_np(r_doki, num_qubits, verbose))
     aux_r_d, m = doki.registry_measure(r_doki, 2**num_qubits - 1,
-                                       np.random.rand(num_qubits).tolist(),
-                                       num_threads, False)
+                                       prng.random(num_qubits).tolist(),
+                                       num_threads, verbose)
     doki_errored = False
     try:
         doki.registry_get(aux_r_d, 0, False)
@@ -127,12 +127,12 @@ def check_everything(num_qubits, r_doki, rtol, atol,
             doki_errored = True
     if not doki_errored or len(m) != num_qubits \
             or not all(x is True or x is False for x in m):
-        raise AssertionError("Error measuring all qubits")
+        error("Error measuring all qubits", fatal=True)
     mess = np.zeros((iterations, num_qubits), dtype=int)
     for i in range(iterations):
         reg, mes = doki.registry_measure(r_doki, 2**num_qubits - 1,
-                                         np.random.rand(num_qubits).tolist(),
-                                         num_threads, False)
+                                         prng.random(num_qubits).tolist(),
+                                         num_threads, verbose)
         del reg
         for j in range(num_qubits):
             mess[i, j] = int(mes[j])
@@ -145,12 +145,12 @@ def check_everything(num_qubits, r_doki, rtol, atol,
                 if not np.all(mess[i] == classic):
                     print(classic)
                     print(mess[i])
-            raise AssertionError("Value differs from expected")
+            error("Value differs from expected", fatal=True)
     del mess
 
 
-def check_half(num_qubits, gates, r_doki, rtol, atol,
-               iterations, bounds, num_threads, classic=None):
+def check_half(num_qubits, gates, r_doki, rtol, atol, iterations,
+               bounds, num_threads, prng, verbose, classic=None):
     """Test measuring half qubits."""
     ids = [i for i in range(num_qubits)]
     mess = np.zeros((iterations, len(ids)//2), dtype=int)
@@ -162,23 +162,22 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
         yes_ids.sort()
         mask = int(np.array([2**id for id in not_ids]).sum())
         # if classic is not None:
-        #     print("Doki0:", doki_to_np(r_doki, num_qubits))
+        #     print("Doki0:", doki_to_np(r_doki, num_qubits, verbose))
         #     print("Mask:", mask)
         aux_r_d, mes = doki.registry_measure(r_doki, mask,
-                                             np.random.rand(len(not_ids))
+                                             prng.random(len(not_ids))
                                              .tolist(),
-                                             num_threads, False)
+                                             num_threads, verbose)
         # if classic is not None:
-        #     print("Doki1:", doki_to_np(aux_r_d, len(yes_ids)))
+        #     print("Doki1:", doki_to_np(aux_r_d, len(yes_ids), verbose))
         #     print("ref:", aux_r_d)
         aux_r_np = build_np(gates, yes_ids)
         if (not compare_no_phase(len(yes_ids), aux_r_d, aux_r_np,
-                                 rtol, atol)) \
+                                 rtol, atol, verbose)) \
                 or len(mes) != num_qubits:
             print("Numpy:", aux_r_np)
-            print("Doki:", doki_to_np(aux_r_d, len(yes_ids)))
-            raise AssertionError("Error measuring half qubits. Mask: " +
-                                 str(mask))
+            print("Doki:", doki_to_np(aux_r_d, len(yes_ids), verbose))
+            error("Error measuring half qubits. Mask:", mask, fatal=True)
         del aux_r_d
         mes = mes[::-1]
         for j in range(len(not_ids)):
@@ -197,131 +196,86 @@ def check_half(num_qubits, gates, r_doki, rtol, atol,
                     print(nots[i])
                     print(mess[i])
                     print(expected[i])
-            raise AssertionError("Value differs from expected")
+            error("Value differs from expected", fatal=True)
 
 
 def check_measure_superposition(num_qubits, rtol, atol, num_threads,
-                                iterations=1000,
-                                bounds=[.3, .4, .4, .45, .55, .6, .6, .7],
-                                verbose=False):
+                                iterations, prng, verbose,
+                                bounds=[.3, .4, .4, .45, .55, .6, .6, .7]):
     """Test measurement with specified number of qubits and Hadamards."""
     h_e_doki, h_e_sp = get_H_e(num_qubits)
     r_doki, r_np = check_build(num_qubits, h_e_doki, h_e_sp,
-                               rtol, atol, num_threads)
-    if verbose:
-        print("\t\tTesting mask = 0")
-    check_nothing(num_qubits, r_doki, rtol, atol, num_threads)
+                               rtol, atol, num_threads, verbose)
+    debug("\t\tTesting mask = 0")
+    check_nothing(num_qubits, r_doki, rtol, atol, num_threads, verbose)
     if (num_qubits > 1):
-        if verbose:
-            print("\t\tTesting mask = half")
+        debug("\t\tTesting mask = half")
         check_half(num_qubits, h_e_sp, r_doki, rtol, atol, iterations, bounds,
-                   num_threads)
-    if verbose:
-        print("\t\tTesting mask = max")
+                   num_threads, prng, verbose)
+    debug("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol, iterations, bounds,
-                     num_threads)
+                     num_threads, prng, verbose)
     del r_doki
     del r_np
 
 
 def check_measure_classic(num_qubits, rtol, atol, num_threads,
-                          iterations=1000, verbose=False):
+                          iterations, prng, verbose):
     """Test measurement with specified number of qubits and X gates."""
     raw_x = [[0, 1], [1, 0]]
     x_sp = sparse.csr_matrix(raw_x)
-    x_d = doki.gate_new(1, raw_x, False)
-    values = np.random.choice(a=[0, 1], size=num_qubits)
+    x_d = doki.gate_new(1, raw_x, verbose)
+    values = prng.choice(a=[0, 1], size=num_qubits)
     x_d_list = [x_d if value else None for value in values]
     x_sp_list = [x_sp if value else None for value in values]
     # print(values)
     r_doki, r_np = check_build(num_qubits, x_d_list, x_sp_list,
-                               rtol, atol, num_threads)
-    if verbose:
-        print("\t\tTesting mask = max")
+                               rtol, atol, num_threads, verbose)
+    debug("\t\tTesting mask = max")
     check_everything(num_qubits, r_doki, rtol, atol,
-                     iterations, None, num_threads, values[::-1])
+                     iterations, None, num_threads,
+                     prng, verbose, values[::-1])
     if (num_qubits > 1):
-        if verbose:
-            print("\t\tTesting mask = half")
+        debug("\t\tTesting mask = half")
         check_half(num_qubits, x_sp_list, r_doki, rtol, atol,
-                   iterations, None, num_threads, values[::-1])
+                   iterations, None, num_threads,
+                   prng, verbose, values[::-1])
     del r_doki
     del r_np
 
 
-def main():
+def main(min_qubits, max_qubits, iterations, num_threads, prng, verbose):
     """Execute all tests."""
-    argv = sys.argv[1:]
-    seed = None
-    verbose = False
-    num_threads = None
-    iterations = 1000
-    if 2 <= len(argv) <= 4:
-        min_qubits = int(argv[0])
-        max_qubits = int(argv[1])
-        if len(argv) >= 3:
-            iterations = int(argv[2])
-        if len(argv) >= 4:
-            num_threads = int(argv[3])
-        if len(argv) >= 5:
-            seed = int(argv[4])
-        if len(argv) >= 6:
-            aux = argv[5].lower()
-            if aux == "false":
-                verbose = False
-            elif aux == "true":
-                verbose = True
-            else:
-                raise ValueError("verbose must be either True or False")
-        if (min_qubits < 1):
-            raise ValueError("minimum number of qubits must be at least 1")
-        elif (min_qubits > max_qubits):
-            raise ValueError("minimum can't be greater than maximum")
-        if iterations <= 0:
-            raise ValueError("Iterations must be at least 1")
-        if seed is not None and (seed < 0 or seed >= 2**32):
-            raise ValueError("seed must be in [0, 2^32 - 1]")
-        if num_threads is not None and num_threads < -1:
-            raise ValueError("num_threads must be at least 1 " +
-                             "(0 -> ENV VAR, -1 -> OMP default)")
-        elif num_threads == 0:
-            num_threads = None
-        print("Measurement tests...")
-        if seed is None:
-            seed = np.random.randint(np.iinfo(np.int32).max)
-            print("\tSeed:", seed)
-        np.random.seed(seed)
-        if num_threads is None:
-            num_threads = os.getenv('OMP_NUM_THREADS')
-            if num_threads is None:
-                num_threads = -1
-            elif num_threads <= 0:
-                raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
-            print("\tNumber of threads:", num_threads)
-        rtol = 0
-        atol = 1e-13
-        print("\tSuperposition tests...")
-        a = t.time()
-        for nq in range(min_qubits, max_qubits + 1):
-            check_measure_superposition(nq, rtol, atol,
-                                        num_threads, iterations, verbose=verbose)
-        b = t.time()
-        gc.collect()
-        print("\tClassic tests...")
-        c = t.time()
-        for nq in range(min_qubits, max_qubits + 1):
-            check_measure_classic(nq, rtol, atol, num_threads,
-                                  iterations, verbose=verbose)
-        d = t.time()
-        gc.collect()
-        print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c)} s")
-    else:
-        raise ValueError("Syntax: " + sys.argv[0] +
-                         " <minimum number of qubits (min 1)>" +
-                         " <maximum number of qubits>" +
-                         " <iterations=1000> <number of threads (optional)>" +
-                         " <seed (optional)> <verbose (default=false)>")
+    rtol = 0
+    atol = 1e-13
+    print("\tSuperposition tests...")
+    a = t.time()
+    for nq in range(min_qubits, max_qubits + 1):
+        check_measure_superposition(nq, rtol, atol,
+                                    num_threads, iterations, prng, verbose)
+    b = t.time()
+    gc.collect()
+    print("\tClassic tests...")
+    c = t.time()
+    for nq in range(min_qubits, max_qubits + 1):
+        check_measure_classic(nq, rtol, atol, num_threads,
+                              iterations, prng, verbose)
+    d = t.time()
+    gc.collect()
+    print(f"\tPEACE AND TRANQUILITY: {(b - a) + (d - c)} s")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(prog="MeasureTests",
+                                     description="Checks if measure method works with the expected odds")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="whether to print extra information or not")
+    parser.add_argument("-n", "--num_qubits", type=int, required=True, help="the starting number of qubits to use")
+    parser.add_argument("-m", "--max_qubits", type=int, default=None, help="the max number of qubits to use")
+    parser.add_argument("-t", "--num_threads", type=int, default=None, help="the number of threads to use")
+    parser.add_argument("-i", "--iterations", type=int, required=True, help="how many times the test target has to be executed")
+    parser.add_argument("-s", "--seed", type=int, default=None, help="sets the seed to use")
+    args = parser.parse_args()
+
+    print("Measurement tests:")
+    prng = init_args(args)
+    main(args.num_qubits, args.max_qubits, args.iterations, args.num_threads, prng, args.verbose)

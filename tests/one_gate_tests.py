@@ -1,12 +1,12 @@
 """One qubit gate tests."""
+import argparse
 import doki as doki
 import numpy as np
-import os
 import scipy.sparse as sparse
-import sys
 import time as t
 
 from reg_creation_tests import gen_reg, doki_to_np
+from timed_test import debug, error, init_args
 
 
 def Identity(nq):
@@ -39,10 +39,10 @@ def U_sparse(angle1, angle2, angle3, invert):
     return sparse.csr_matrix(U_np(angle1, angle2, angle3, invert))
 
 
-def U_doki(angle1, angle2, angle3, invert):
+def U_doki(angle1, angle2, angle3, invert, verbose):
     """Return doki U gate (IBM)."""
     return doki.gate_new(1, U_np(angle1, angle2, angle3, invert).tolist(),
-                         False)
+                         verbose)
 
 
 def apply_np(nq, r, g, target):
@@ -61,17 +61,17 @@ def apply_np(nq, r, g, target):
         return r[:, :]
 
 
-def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target, num_threads):
+def apply_gate(nq, r_np, r_doki, g_sparse, g_doki, target, num_threads, verbose):
     """Apply gate to registry (both numpy+sparse and doki)."""
-    # print(doki_to_np(r_doki, nq))
+    # print(doki_to_np(r_doki, nq, verbose))
     # print(g_doki)
     # print({target})
     new_r_doki = doki.registry_apply(r_doki, g_doki, [target], None, None,
-                                     num_threads, False)
+                                     num_threads, verbose)
     return (apply_np(nq, r_np, g_sparse, target), new_r_doki)
 
 
-def test_gates_static(num_qubits, num_threads):
+def test_gates_static(num_qubits, num_threads, prng, verbose):
     """Apply a random 1-qubit gate to each qubit and compare results."""
     rtol = 0
     atol = 1e-13
@@ -80,82 +80,47 @@ def test_gates_static(num_qubits, num_threads):
     for i in range(num_qubits):
         r1_np = r2_np
         r1_doki = r2_doki
-        angles = np.pi * (np.random.random_sample(3) * 2 - 1)
-        invert = np.random.choice(a=[False, True])
+        angles = np.pi * (prng.random(3) * 2 - 1)
+        invert = prng.choice(a=[False, True])
         r2_np, r2_doki = apply_gate(num_qubits, r1_np, r1_doki,
                                     U_sparse(*angles, invert),
-                                    U_doki(*angles, invert), i,
-                                    num_threads)
-        if not np.allclose(doki_to_np(r2_doki, num_qubits), r2_np,
+                                    U_doki(*angles, invert, verbose), i,
+                                    num_threads, verbose)
+        if not np.allclose(doki_to_np(r2_doki, num_qubits, verbose), r2_np,
                            rtol=rtol, atol=atol):
-            '''
-            print("i:", i)
-            print("angles:", angles)
-            print("invert:", invert)
-            print("r1_np:", r1_np)
-            print("r1_doki:", doki_to_np(r1_doki, num_qubits))
-            print("r2_np:", r2_np)
-            print("r2_doki:", doki_to_np(r2_doki, num_qubits))
-            print("comp:", np.allclose(doki_to_np(r2_doki, num_qubits), r2_np,
-                                       rtol=rtol, atol=atol))
-            '''
-            raise AssertionError("Error applying gate")
+            debug("i:", i)
+            debug("angles:", angles)
+            debug("invert:", invert)
+            debug("r1_np:", r1_np)
+            debug("r1_doki:", doki_to_np(r1_doki, num_qubits, verbose))
+            debug("r2_np:", r2_np)
+            debug("r2_doki:", doki_to_np(r2_doki, num_qubits, verbose))
+            debug("comp:", np.allclose(doki_to_np(r2_doki, num_qubits, verbose),
+                                       r2_np, rtol=rtol, atol=atol))
+            error("Error applying gate", fatal=True)
         del r1_np
         del r1_doki
 
 
-def one_gate_range(min_qubits, max_qubits, num_threads):
+def main(min_qubits, max_qubits, num_threads, prng, verbose):
     """Execute test_gates_static once for each posible number in range."""
+    a = t.time()
     for nq in range(min_qubits, max_qubits + 1):
-        test_gates_static(nq, num_threads)
-
-
-def main():
-    """Execute all tests."""
-    argv = sys.argv[1:]
-    seed = None
-    num_threads = None
-    if 2 <= len(argv) <= 3:
-        min_qubits = int(argv[0])
-        max_qubits = int(argv[1])
-        if len(argv) >= 3:
-            num_threads = int(argv[2])
-        if len(argv) >= 4:
-            seed = int(argv[3])
-        if (min_qubits < 1):
-            raise ValueError("minimum number of qubits must be at least 1")
-        elif (min_qubits > max_qubits):
-            raise ValueError("minimum can't be greater than maximum")
-        if seed is not None and (seed < 0 or seed >= 2**32):
-            raise ValueError("seed must be in [0, 2^32 - 1]")
-        if num_threads is not None and num_threads < -1:
-            raise ValueError("num_threads must be at least 1 " +
-                             "(0 -> ENV VAR, -1 -> OMP default)")
-        elif num_threads == 0:
-            num_threads = None
-        print("One qubit gate application tests...")
-        if seed is None:
-            seed = np.random.randint(np.iinfo(np.int32).max)
-            print("\tSeed:", seed)
-        np.random.seed(seed)
-        if num_threads is None:
-            num_threads = os.getenv('OMP_NUM_THREADS')
-            if num_threads is None:
-                num_threads = -1
-            elif num_threads <= 0:
-                raise ValueError("Error: OMP_NUM_THREADS can't be less than 1")
-            print("\tNumber of threads:", num_threads)
-        a = t.time()
-        one_gate_range(min_qubits, max_qubits, num_threads)
-        b = t.time()
-        print(f"\tPEACE AND TRANQUILITY: {b - a}")
-    else:
-        raise ValueError("Syntax: " + sys.argv[0] +
-                         " <minimum number of qubits (min 1)>" +
-                         " <maximum number of qubits>" +
-                         " <number of threads (optional)>" +
-                         " <seed (optional)>")
+        test_gates_static(nq, num_threads, prng, verbose)
+    b = t.time()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(prog="OneGateTests",
+                                     description="Checks if apply_gate method works with one qubit gates")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="whether to print extra information or not")
+    parser.add_argument("-n", "--num_qubits", type=int, required=True, help="the starting number of qubits to use")
+    parser.add_argument("-m", "--max_qubits", type=int, default=None, help="the max number of qubits to use")
+    parser.add_argument("-t", "--num_threads", type=int, default=None, help="the number of threads to use")
+    # parser.add_argument("-i", "--iterations", type=int, required=True, help="how many times the test target has to be executed")
+    parser.add_argument("-s", "--seed", type=int, default=None, help="sets the seed to use")
+    args = parser.parse_args()
+
+    print("One qubit gate application tests:")
+    prng = init_args(args)
+    main(args.num_qubits, args.max_qubits, args.num_threads, prng, args.verbose)

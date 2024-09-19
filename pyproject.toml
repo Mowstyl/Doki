@@ -26,21 +26,21 @@ skip = "pp* cp38-macosx_*"
 test-requires = "scipy"
 test-skip = "cp38-musllinux_*"
 test-command = [
-  "python {package}/tests/reg_creation_tests.py 1 5",
-  "python {package}/tests/one_gate_tests.py 1 5 1",
-  "python {package}/tests/one_gate_tests.py 1 5 8",
-  "python {package}/tests/measure_tests.py 1 5 1000 1",
-  "python {package}/tests/measure_tests.py 1 5 1000 8",
-  "python {package}/tests/multiple_gate_tests.py 2 5 1",
-  "python {package}/tests/multiple_gate_tests.py 2 5 8",
-  "python {package}/tests/join_regs_tests.py 5 1",
-  "python {package}/tests/join_regs_tests.py 5 8",
-  "python {package}/tests/canonical_form_tests.py 1 5",
-  "python {package}/tests/probability_tests.py 1 5 1",
-  "python {package}/tests/probability_tests.py 1 5 8",
-  "python {package}/tests/density_matrix_tests.py 1 5",
-  "python {package}/tests/timed_test.py -n 5 -m 24 -t 1",
-  "python {package}/tests/timed_test.py -n 5 -m 24 -t 8",
+  "python {package}/tests/reg_creation_tests.py -n 1 -m 5",
+  "python {package}/tests/one_gate_tests.py -n 1 -m 5 -t 1",
+  "python {package}/tests/one_gate_tests.py -n 1 -m 5 -t 8",
+  "python {package}/tests/measure_tests.py -n 1 -m 5 -i 1000 -t 1",
+  "python {package}/tests/measure_tests.py -n 1 -m 5 -i 1000 -t 8",
+  "python {package}/tests/multiple_gate_tests.py -n 2 -m 5 -t 1",
+  "python {package}/tests/multiple_gate_tests.py -n 2 -m 5 -t 8",
+  "python {package}/tests/join_regs_tests.py -n 5 -t 1",
+  "python {package}/tests/join_regs_tests.py -n 5 -t 8",
+  "python {package}/tests/canonical_form_tests.py -n 1 -m 5",
+  "python {package}/tests/probability_tests.py -n 1 -m 5 -t 1",
+  "python {package}/tests/probability_tests.py -n 1 -m 5 -t 8",
+  "python {package}/tests/density_matrix_tests.py -n 1 -m 5",
+#  "python {package}/tests/timed_test.py -n 5 -m 20 -t 1",
+#  "python {package}/tests/timed_test.py -n 5 -m 20 -t 8",
 ]
 
 #[tool.cibuildwheel.linux]

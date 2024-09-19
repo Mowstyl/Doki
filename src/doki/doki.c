@@ -568,6 +568,7 @@ static PyObject *doki_registry_get(PyObject *self, PyObject *args)
 	}
 	state = (struct state_vector *)raw_state;
 	val = state_get(state, id);
+	/*
 	if (debug_enabled) {
 		printf("[DEBUG] raw = " COMPLEX_STRING_FORMAT "\n",
 		       COMPLEX_STRING(state->vector[id / COMPLEX_ARRAY_SIZE]
@@ -576,12 +577,15 @@ static PyObject *doki_registry_get(PyObject *self, PyObject *args)
 		printf("[DEBUG] res = " COMPLEX_STRING_FORMAT "\n",
 		       COMPLEX_STRING(val));
 	}
+	*/
 	if (canonical) {
 		phase = get_global_phase(state);
+		/*
 		if (debug_enabled) {
 			printf("[DEBUG] phase = " REAL_STRING_FORMAT "\n",
 			       phase);
 		}
+		*/
 		aux = COMPLEX_INIT(COS(phase), -SIN(phase));
 		val = COMPLEX_MULT(val, aux);
 	}
