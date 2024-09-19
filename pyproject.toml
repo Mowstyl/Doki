@@ -39,8 +39,8 @@ test-command = [
   "python {package}/tests/probability_tests.py -n 1 -m 5 -t 1",
   "python {package}/tests/probability_tests.py -n 1 -m 5 -t 8",
   "python {package}/tests/density_matrix_tests.py -n 1 -m 5",
-#  "python {package}/tests/timed_test.py -n 5 -m 20 -t 1",
-#  "python {package}/tests/timed_test.py -n 5 -m 20 -t 8",
+  "python {package}/tests/timed_test.py -n 5 -m 20 -t 1",
+  "python {package}/tests/timed_test.py -n 5 -m 20 -t 8",
 ]
 
 #[tool.cibuildwheel.linux]
