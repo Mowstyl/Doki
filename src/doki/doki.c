@@ -49,7 +49,7 @@ static PyObject *doki_registry_get(PyObject *self, PyObject *args);
 
 void custom_state_init_py(PyObject *values, struct state_vector *state);
 
-void custom_state_init_np(PyObject *values, struct state_vector *state);
+void custom_state_init_np(PyArrayObject *values, struct state_vector *state);
 
 static PyObject *doki_registry_new_data(PyObject *self, PyObject *args);
 
@@ -608,7 +608,7 @@ void custom_state_init_py(PyObject *values, struct state_vector *state)
 	}
 }
 
-void custom_state_init_np(PyObject *values, struct state_vector *state)
+void custom_state_init_np(PyArrayObject *values, struct state_vector *state)
 {
 	NATURAL_TYPE i;
 	COMPLEX_TYPE val;
@@ -674,14 +674,14 @@ static PyObject *doki_registry_new_data(PyObject *self, PyObject *args)
 		if (debug_enabled) {
 			printf("[DEBUG] Checking array type\n");
 		}
-		if (!PyArray_ISNUMBER(raw_vals)) {
+		if (!PyArray_ISNUMBER((PyArrayObject*) raw_vals)) {
 			PyErr_SetString(DokiError, "values have to be numbers");
 			return NULL;
 		}
 		if (debug_enabled) {
 			printf("[DEBUG] Checking array size\n");
 		}
-		if (PyArray_SIZE(raw_vals) != state->size) {
+		if (PyArray_SIZE((PyArrayObject*) raw_vals) != state->size) {
 			PyErr_SetString(
 				DokiError,
 				"Wrong array size for the specified number of qubits");
@@ -690,7 +690,7 @@ static PyObject *doki_registry_new_data(PyObject *self, PyObject *args)
 		if (debug_enabled) {
 			printf("[DEBUG] Working with numpy array\n");
 		}
-		custom_state_init_np(raw_vals, state);
+		custom_state_init_np((PyArrayObject*) raw_vals, state);
 	} else if (PyList_Check(raw_vals)) {
 		if (debug_enabled) {
 			printf("[DEBUG] Checking list size\n");
